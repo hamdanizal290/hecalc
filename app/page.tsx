@@ -36,18 +36,27 @@ export default function Home() {
                 </span>{" "}
                 <span className="text-[rgb(var(--re-ink))]">Web App</span>
               </h1>
-
-              <div className="mt-3 text-sm re-muted">
-                Tema: Rekayasa Engineering (Blue / Green / Orange)
-              </div>
             </div>
           </div>
 
-          {/* DESCRIPTION */}
-          <p className="mt-8 max-w-2xl text-lg md:text-xl re-muted">
-            Web app interaktif untuk perhitungan tangki (SI/US), hasil table
-            course, dan export report.
+          {/* DESCRIPTION (DETAILED) */}
+          <p className="mt-8 max-w-3xl text-base md:text-lg re-muted leading-relaxed">
+            Web-based engineering tool untuk perhitungan desain tangki silinder
+            vertikal sesuai <strong>API 650</strong>. Aplikasi ini mendukung
+            pilihan satuan <strong>SI / US</strong>, menghitung ketebalan shell{" "}
+            <strong>per course</strong>, menampilkan hasil verifikasi{" "}
+            <strong>OK / NOT OK</strong>, serta menyediakan struktur modular
+            untuk pengembangan lanjutan (bottom plate, roof, wind load, seismic
+            load, dan nozzle reinforcement).
           </p>
+
+          {/* FEATURE BULLETS */}
+          <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm re-muted">
+            <li>• Perhitungan shell tank berbasis API 650</li>
+            <li>• Sistem satuan SI dan US</li>
+            <li>• Evaluasi OK / NOT OK per course</li>
+            <li>• Fondasi modular: bottom, roof, wind, seismic, nozzle</li>
+          </ul>
 
           {/* ACTIONS */}
           <div className="mt-8 flex flex-wrap gap-4">
@@ -64,7 +73,9 @@ export default function Home() {
               className="px-8 py-3.5 rounded-2xl text-sm font-semibold
                          border border-black/10 bg-white/70 hover:bg-white/90 transition"
               onClick={() =>
-                alert("API 650 TankCalc\n\nModule Shell aktif.\nModule lain menyusul.")
+                alert(
+                  "TankCalc (API 650)\n\n• Unit: SI / US\n• Output: Shell per course (OK/NOT OK)\n• Modul lanjutan: Bottom/Roof/Wind/Seismic/Nozzle (coming soon)"
+                )
               }
             >
               Info
@@ -76,7 +87,7 @@ export default function Home() {
             <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--re-blue))]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--re-green))]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--re-orange))]" />
-            <span>Brand colors applied</span>
+            <span>Engineering calculator platform</span>
           </div>
         </section>
       </div>

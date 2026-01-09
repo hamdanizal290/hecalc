@@ -2,10 +2,10 @@
 
 /* === Rekayasa Engineering Theme === */
 :root{
-  --re-blue: 37 99 160;
-  --re-green: 102 187 68;
-  --re-orange: 245 158 11;
-  --re-ink: 10 22 39;
+  --re-blue: 37 99 160;    /* biru */
+  --re-green: 102 187 68;  /* hijau */
+  --re-orange: 245 158 11; /* oranye */
+  --re-ink: 10 22 39;      /* navy gelap */
 }
 
 html, body {
@@ -28,11 +28,11 @@ html, body {
   color: rgba(var(--re-ink), 0.70);
 }
 
+/* subtle geometric overlay */
 .re-geo {
   position: relative;
   overflow: hidden;
 }
-
 .re-geo::before{
   content:"";
   position:absolute;
@@ -46,8 +46,12 @@ html, body {
   pointer-events: none;
 }
 
+/* animated gradient headline (mobile-safe) */
 .re-gradient-text {
-  background: linear-gradient(
+  /* fallback kalau browser gagal clip */
+  color: rgb(var(--re-blue));
+
+  background-image: linear-gradient(
     90deg,
     rgba(var(--re-blue), 1),
     rgba(var(--re-green), 1),
@@ -55,10 +59,15 @@ html, body {
     rgba(var(--re-blue), 1)
   );
   background-size: 300% 100%;
+  background-position: 0% 50%;
+
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
-  animation: reGradientMove 6s ease-in-out infinite;
+
+  /* ini penting banget utk Safari/iOS biar gak jadi putih */
+  -webkit-text-fill-color: transparent;
+
+  animation: reGradientMove 7s ease-in-out infinite;
 }
 
 @keyframes reGradientMove {

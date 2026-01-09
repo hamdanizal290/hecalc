@@ -1,68 +1,40 @@
 "use client";
 
-import { calcShell } from "@/lib/api650";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-
-type Unit = "SI" | "US";
-
-type InputState = {
-  unit: Unit;
-  diameter: number; // m / ft
-  height: number; // m / ft
-  courses: number;
-  designLiquidHeight: number; // m / ft
-  specificGravity: number; // -
-  corrosionAllowance: number; // mm / in
-  fy: number; // MPa / ksi
-  jointEfficiency: number; // 0..1
-};
-
-type CourseRow = {
-  courseNo: number;
-  required: number;
-  adopted: number;
-  status: "OK" | "NG";
-};
+import { calcShell } from "@/lib/api650";
+import type { ShellInput, Unit } from "@/lib/api650";
 
 export default function CalculatorPage() {
-  const [input, setInput] = useState<InputState>({
+  const [input, setInput] = useState<ShellInput>({
     unit: "SI",
-    diameter: 30,
-    height: 12,
+    diameter: 30, // m / ft
+    height: 12, // m / ft
     courses: 6,
-    designLiquidHeight: 11,
+    designLiquidHeight: 11, // m / ft
     specificGravity: 1.0,
-    corrosionAllowance: 2,
-    fy: 240,
-    jointEfficiency: 1.0,
+    corrosionAllowance: 2, // mm / in
+    fy: 240, // MPa / ksi
+    jointEfficiency: 1.0, // 0..1
   });
 
-  // Placeholder kalkulasi: bikin profil tebal dari atas ke bawah (bawah lebih tebal)
-  const rows: CourseRow[] = useMemo(() => {
-    const n = clampInt(input.courses, 1, 40);
-
-    const base = input.unit === "SI" ? 6 : 0.25; // mm / in
-    const step = input.unit === "SI" ? 1.5 : 0.0625;
-
-    return Array.from({ length: n }, (_, i) => {
-      const courseNo = i + 1;
-      const req = base + (n - courseNo) * step;
-      const adopted = roundUpToStandard(req + input.corrosionAllowance, input.unit);
-      return {
-        courseNo,
-        required: round(req),
-        adopted: round(adopted),
-        status: adopted >= req + input.corrosionAllowance ? "OK" : "NG",
-      };
-    });
+  const rows = useMemo(() => {
+    // amanin input courses biar ga aneh
+    const safeInput: ShellInput = {
+      ...input,
+      courses: clampInt(input.courses, 1, 40),
+      jointEfficiency: clamp(input.jointEfficiency, 0, 1),
+      specificGravity: clamp(input.specificGravity, 0.5, 2.0),
+    };
+    return calcShell(safeInput);
   }, [input]);
 
   const allOk = rows.every((r) => r.status === "OK");
 
-  const unitLabel = input.unit === "SI"
-    ? { D: "m", H: "m", t: "mm", fy: "MPa" }
-    : { D: "ft", H: "ft", t: "in", fy: "ksi" };
+  const unitLabel =
+    input.unit === "SI"
+      ? { D: "m", H: "m", t: "mm", fy: "MPa" }
+      : { D: "ft", H: "ft", t: "in", fy: "ksi" };
 
   return (
     <main className="min-h-screen p-6">
@@ -73,11 +45,13 @@ export default function CalculatorPage() {
             <div className="text-sm opacity-70">API 650 Tank Calculator</div>
             <h1 className="text-2xl font-semibold mt-1">Calculator</h1>
           </div>
-          <Link className="opacity-80 underline" href="/">Home</Link>
+          <Link className="opacity-80 underline" href="/">
+            Home
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Input Card */}
+          {/* Input */}
           <section className="rounded-2xl border border-white/10 bg-black/20 p-6 space-y-4">
             <h2 className="font-medium">Input</h2>
 
@@ -107,27 +81,35 @@ export default function CalculatorPage() {
               <FieldNumber
                 label="Number of Courses"
                 value={input.courses}
-                onChange={(v) => setInput((s) => ({ ...s, courses: clampInt(v, 1, 40) }))}
+                onChange={(v) =>
+                  setInput((s) => ({ ...s, courses: clampInt(v, 1, 40) }))
+                }
               />
 
               <FieldNumber
                 label={`Design Liquid Height (${unitLabel.H})`}
                 value={input.designLiquidHeight}
-                onChange={(v) => setInput((s) => ({ ...s, designLiquidHeight: v }))}
+                onChange={(v) =>
+                  setInput((s) => ({ ...s, designLiquidHeight: v }))
+                }
               />
 
               <FieldNumber
                 label="Specific Gravity (-)"
                 value={input.specificGravity}
                 step="0.01"
-                onChange={(v) => setInput((s) => ({ ...s, specificGravity: v }))}
+                onChange={(v) =>
+                  setInput((s) => ({ ...s, specificGravity: v }))
+                }
               />
 
               <FieldNumber
                 label={`Corrosion Allowance (${unitLabel.t})`}
                 value={input.corrosionAllowance}
                 step="0.1"
-                onChange={(v) => setInput((s) => ({ ...s, corrosionAllowance: v }))}
+                onChange={(v) =>
+                  setInput((s) => ({ ...s, corrosionAllowance: v }))
+                }
               />
 
               <FieldNumber
@@ -141,25 +123,32 @@ export default function CalculatorPage() {
                 label="Joint Efficiency (0..1)"
                 value={input.jointEfficiency}
                 step="0.01"
-                onChange={(v) => setInput((s) => ({ ...s, jointEfficiency: clamp(v, 0, 1) }))}
+                onChange={(v) =>
+                  setInput((s) => ({ ...s, jointEfficiency: clamp(v, 0, 1) }))
+                }
               />
             </div>
 
             <div className="rounded-xl border border-white/10 p-4 text-sm opacity-80">
               <div className="font-medium mb-1">Catatan</div>
-              Ini masih <b>placeholder</b> (belum rumus API 650). Tapi UI + tabel course sudah siap.
-              Nanti kita ganti mesin hitungnya modul-per-modul.
+              Ini masih <b>placeholder</b> untuk shell thickness (belum rumus API
+              650 asli). Tapi struktur engine-nya sudah siap buat kamu isi
+              modul-modul berikutnya.
             </div>
           </section>
 
-          {/* Output Card */}
+          {/* Output */}
           <section className="rounded-2xl border border-white/10 bg-black/20 p-6 space-y-4">
             <h2 className="font-medium">Results</h2>
 
-            <div className={`rounded-xl p-4 border border-white/10 ${allOk ? "bg-green-500/10" : "bg-red-500/10"}`}>
+            <div
+              className={`rounded-xl p-4 border border-white/10 ${
+                allOk ? "bg-green-500/10" : "bg-red-500/10"
+              }`}
+            >
               <div className="font-semibold">{allOk ? "PASS" : "NOT PASS"}</div>
               <div className="text-sm opacity-75">
-                Shell course thickness (placeholder) • unit thickness: {unitLabel.t}
+                Shell course thickness • unit thickness: {unitLabel.t}
               </div>
             </div>
 
@@ -168,8 +157,12 @@ export default function CalculatorPage() {
                 <thead className="bg-white/5">
                   <tr>
                     <th className="text-left p-3">Course</th>
-                    <th className="text-left p-3">Req t ({unitLabel.t})</th>
-                    <th className="text-left p-3">Adopt t ({unitLabel.t})</th>
+                    <th className="text-left p-3">
+                      Req t ({unitLabel.t})
+                    </th>
+                    <th className="text-left p-3">
+                      Adopt t ({unitLabel.t})
+                    </th>
                     <th className="text-left p-3">Status</th>
                   </tr>
                 </thead>
@@ -180,7 +173,13 @@ export default function CalculatorPage() {
                       <td className="p-3">{r.required}</td>
                       <td className="p-3">{r.adopted}</td>
                       <td className="p-3">
-                        <span className={`px-2 py-1 rounded-lg ${r.status === "OK" ? "bg-green-500/15" : "bg-red-500/15"}`}>
+                        <span
+                          className={`px-2 py-1 rounded-lg ${
+                            r.status === "OK"
+                              ? "bg-green-500/15"
+                              : "bg-red-500/15"
+                          }`}
+                        >
                           {r.status}
                         </span>
                       </td>
@@ -191,7 +190,8 @@ export default function CalculatorPage() {
             </div>
 
             <div className="text-xs opacity-60">
-              Next step: kita pisahin engine hitung ke `src/lib/api650/` biar gampang tambah bottom/roof/wind/seismic/nozzle.
+              Next: bikin tab modul (Bottom/Roof/Wind/Seismic/Nozzle) + engine
+              placeholder per modul, baru isi rumus pelan-pelan.
             </div>
           </section>
         </div>
@@ -235,7 +235,9 @@ function FieldSelect(props: {
         onChange={(e) => props.onChange(e.target.value)}
       >
         {props.options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
         ))}
       </select>
     </label>
@@ -250,18 +252,4 @@ function clamp(x: number, min: number, max: number) {
 function clampInt(x: number, min: number, max: number) {
   const v = Math.floor(clamp(x, min, max));
   return v;
-}
-
-function round(x: number) {
-  return Math.round(x * 1000) / 1000;
-}
-
-// contoh rounding plate standar (placeholder)
-function roundUpToStandard(x: number, unit: Unit) {
-  if (unit === "SI") {
-    const standards = [6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 28, 32];
-    return standards.find((s) => s >= x) ?? x;
-  }
-  const standards = [0.25, 0.3125, 0.375, 0.5, 0.625, 0.75, 1.0];
-  return standards.find((s) => s >= x) ?? x;
 }

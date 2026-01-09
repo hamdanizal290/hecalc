@@ -52,76 +52,82 @@ export default function CalculatorPage() {
       : { D: "ft", H: "ft", t: "in", fy: "ksi" };
 
   const bottomResult: PlaceholderResult = {
-    title: "Bottom (Placeholder)",
+    title: "Bottom Module",
     status: "COMING_SOON",
-    notes: [
-      "Nanti: minimum bottom thickness + annular plate check.",
-      "Output: adopted thickness, requirement, OK/NG.",
-    ],
+    notes: ["Minimum bottom thickness", "Annular plate check", "OK/NG summary"],
   };
 
   const roofResult: PlaceholderResult = {
-    title: "Roof (Placeholder)",
+    title: "Roof Module",
     status: "COMING_SOON",
-    notes: [
-      "Nanti: roof type + minimum thickness check.",
-      "Output: adopted thickness, OK/NG.",
-    ],
+    notes: ["Roof type selection", "Minimum roof thickness", "OK/NG summary"],
   };
 
   const windResult: PlaceholderResult = {
-    title: "Wind (Placeholder)",
+    title: "Wind Module",
     status: "COMING_SOON",
-    notes: [
-      "Nanti: wind load input + requirement stiffener/girder.",
-      "Output: need stiffener? spacing? OK/NG.",
-    ],
+    notes: ["Wind input", "Stiffener/girder requirement", "OK/NG summary"],
   };
 
   const seismicResult: PlaceholderResult = {
-    title: "Seismic (Placeholder)",
+    title: "Seismic Module",
     status: "COMING_SOON",
-    notes: [
-      "Nanti: seismic input + overturning/sliding/anchorage summary.",
-      "Output: checks + governing case.",
-    ],
+    notes: ["Seismic input", "Overturning/sliding", "Anchorage check"],
   };
 
   const nozzleResult: PlaceholderResult = {
-    title: "Nozzle (Placeholder)",
+    title: "Nozzle Module",
     status: "COMING_SOON",
-    notes: [
-      "Nanti: nozzle list + reinforcement check.",
-      "Output: required area vs available area, OK/NG.",
-    ],
+    notes: ["Nozzle list", "Reinforcement area check", "OK/NG summary"],
   };
 
   return (
-    <main className="min-h-screen p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="min-h-screen p-6 re-geo">
+      <div className="mx-auto max-w-6xl space-y-6 relative">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <header className="rounded-2xl re-card p-5 flex items-center justify-between">
           <div>
-            <div className="text-sm opacity-70">API 650 Tank Calculator</div>
-            <h1 className="text-2xl font-semibold mt-1">Calculator</h1>
+            <div className="text-sm re-muted">API 650 Tank Calculator</div>
+            <h1 className="text-2xl font-semibold mt-1">
+              TankCalc <span className="re-muted font-normal">Web App</span>
+            </h1>
+            <div className="text-sm re-muted mt-1">
+              Tema: Rekayasa Engineering (Blue / Green / Orange)
+            </div>
           </div>
-          <Link className="opacity-80 underline" href="/">
-            Home
-          </Link>
-        </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              className="px-3 py-2 rounded-xl border border-black/10 bg-white/70 hover:bg-white/90 transition text-sm font-medium"
+              href="/"
+            >
+              Home
+            </Link>
+            <span className="h-9 w-[2px] bg-black/10 rounded-full" />
+            <span className="px-3 py-2 rounded-xl text-sm font-semibold text-white bg-[rgb(var(--re-blue))] shadow">
+              RE
+            </span>
+          </div>
+        </header>
 
         {/* Tabs */}
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <section className="rounded-2xl re-card p-4">
           <Tabs value={activeTab} onChange={setActiveTab} />
-          <div className="text-xs opacity-60 mt-2">
-            Tip: mulai isi Shell dulu, modul lain masih placeholder.
+          <div className="text-xs re-muted mt-2">
+            Mulai dari Shell dulu. Modul lain masih placeholder.
           </div>
-        </div>
+        </section>
 
+        {/* Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Input */}
-          <section className="rounded-2xl border border-white/10 bg-black/20 p-6 space-y-4">
-            <h2 className="font-medium">Input</h2>
+          {/* Input Card */}
+          <section className="rounded-2xl re-card p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold">Input</h2>
+              <span className="text-xs re-muted">
+                Units: {input.unit} • D({unitLabel.D}) H({unitLabel.H})
+              </span>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FieldSelect
@@ -197,35 +203,39 @@ export default function CalculatorPage() {
               />
             </div>
 
-            <div className="rounded-xl border border-white/10 p-4 text-sm opacity-80">
-              <div className="font-medium mb-1">Catatan</div>
-              Tabs sudah aktif. Shell sudah ada hasil tabel (placeholder). Modul
-              lain menyusul.
+            <div className="rounded-xl border border-black/10 bg-white/60 p-4 text-sm re-muted">
+              <div className="font-semibold text-[rgb(var(--re-blue))]">
+                Catatan
+              </div>
+              Perhitungan shell masih placeholder. Tapi UI + struktur modul sudah
+              siap untuk diisi API 650 beneran.
             </div>
           </section>
 
-          {/* Results */}
-          <section className="rounded-2xl border border-white/10 bg-black/20 p-6 space-y-4">
-            <h2 className="font-medium">Results</h2>
+          {/* Results Card */}
+          <section className="rounded-2xl re-card p-6 space-y-4">
+            <h2 className="font-semibold">Results</h2>
 
             {activeTab === "shell" && (
               <>
                 <div
-                  className={`rounded-xl p-4 border border-white/10 ${
-                    shellAllOk ? "bg-green-500/10" : "bg-red-500/10"
+                  className={`rounded-xl p-4 border ${
+                    shellAllOk
+                      ? "border-[rgba(var(--re-green),0.35)] bg-[rgba(var(--re-green),0.10)]"
+                      : "border-[rgba(var(--re-orange),0.35)] bg-[rgba(var(--re-orange),0.10)]"
                   }`}
                 >
                   <div className="font-semibold">
                     {shellAllOk ? "PASS" : "NOT PASS"}
                   </div>
-                  <div className="text-sm opacity-75">
+                  <div className="text-sm re-muted">
                     Shell course thickness • unit thickness: {unitLabel.t}
                   </div>
                 </div>
 
-                <div className="overflow-auto rounded-xl border border-white/10">
+                <div className="overflow-auto rounded-xl border border-black/10 bg-white/60">
                   <table className="w-full text-sm">
-                    <thead className="bg-white/5">
+                    <thead className="bg-[rgba(var(--re-blue),0.10)]">
                       <tr>
                         <th className="text-left p-3">Course</th>
                         <th className="text-left p-3">Req t ({unitLabel.t})</th>
@@ -236,17 +246,23 @@ export default function CalculatorPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {shellRows.map((r) => (
-                        <tr key={r.courseNo} className="border-t border-white/10">
+                      {shellRows.map((r, idx) => (
+                        <tr
+                          key={r.courseNo}
+                          className={[
+                            "border-t border-black/10",
+                            idx % 2 === 0 ? "bg-white/40" : "bg-white/20",
+                          ].join(" ")}
+                        >
                           <td className="p-3">{r.courseNo}</td>
                           <td className="p-3">{r.required}</td>
                           <td className="p-3">{r.adopted}</td>
                           <td className="p-3">
                             <span
-                              className={`px-2 py-1 rounded-lg ${
+                              className={`px-2 py-1 rounded-lg border text-xs font-semibold ${
                                 r.status === "OK"
-                                  ? "bg-green-500/15"
-                                  : "bg-red-500/15"
+                                  ? "border-[rgba(var(--re-green),0.35)] bg-[rgba(var(--re-green),0.12)]"
+                                  : "border-[rgba(var(--re-orange),0.35)] bg-[rgba(var(--re-orange),0.12)]"
                               }`}
                             >
                               {r.status}
@@ -258,8 +274,8 @@ export default function CalculatorPage() {
                   </table>
                 </div>
 
-                <div className="text-xs opacity-60">
-                  Next: isi rumus shell API 650 beneran.
+                <div className="text-xs re-muted">
+                  Next: kita isi rumus shell API 650 beneran.
                 </div>
               </>
             )}
@@ -277,28 +293,37 @@ export default function CalculatorPage() {
 }
 
 function PlaceholderCard({ data }: { data: PlaceholderResult }) {
+  const badge =
+    data.status === "OK"
+      ? "border-[rgba(var(--re-green),0.35)] bg-[rgba(var(--re-green),0.12)]"
+      : data.status === "NG"
+      ? "border-[rgba(var(--re-orange),0.35)] bg-[rgba(var(--re-orange),0.12)]"
+      : "border-black/10 bg-white/60";
+
   return (
-    <div className="rounded-2xl border border-white/10 p-5 bg-white/5">
+    <div className="rounded-2xl border border-black/10 bg-white/60 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-semibold">{data.title}</div>
-          <div className="text-sm opacity-70 mt-1">
+          <div className="font-semibold text-[rgb(var(--re-blue))]">
+            {data.title}
+          </div>
+          <div className="text-sm re-muted mt-1">
             Status:{" "}
-            <span className="px-2 py-1 rounded-lg bg-white/10">
+            <span className={`px-2 py-1 rounded-lg border text-xs ${badge}`}>
               {data.status}
             </span>
           </div>
         </div>
       </div>
 
-      <ul className="mt-4 space-y-2 text-sm opacity-80 list-disc pl-5">
+      <ul className="mt-4 space-y-2 text-sm re-muted list-disc pl-5">
         {data.notes.map((n, idx) => (
           <li key={idx}>{n}</li>
         ))}
       </ul>
 
-      <div className="text-xs opacity-60 mt-4">
-        Modul ini akan kita isi setelah shell beres.
+      <div className="text-xs re-muted mt-4">
+        Modul ini akan kita isi setelah Shell beres.
       </div>
     </div>
   );
@@ -312,9 +337,9 @@ function FieldNumber(props: {
 }) {
   return (
     <label className="space-y-1">
-      <div className="text-sm opacity-70">{props.label}</div>
+      <div className="text-sm re-muted">{props.label}</div>
       <input
-        className="w-full rounded-xl border border-white/10 bg-transparent p-2"
+        className="w-full rounded-xl border border-black/10 bg-white/70 p-2 outline-none focus:ring-2 focus:ring-[rgba(var(--re-blue),0.30)]"
         type="number"
         value={Number.isFinite(props.value) ? props.value : 0}
         step={props.step ?? "1"}
@@ -332,9 +357,9 @@ function FieldSelect(props: {
 }) {
   return (
     <label className="space-y-1">
-      <div className="text-sm opacity-70">{props.label}</div>
+      <div className="text-sm re-muted">{props.label}</div>
       <select
-        className="w-full rounded-xl border border-white/10 bg-transparent p-2"
+        className="w-full rounded-xl border border-black/10 bg-white/70 p-2 outline-none focus:ring-2 focus:ring-[rgba(var(--re-blue),0.30)]"
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
       >

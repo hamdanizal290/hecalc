@@ -1,35 +1,38 @@
 @import "tailwindcss";
 
-/* === Rekayasa Engineering Theme === */
+/* ===============================
+   Rekayasa Engineering Theme
+================================ */
 :root{
-  --re-blue: 37 99 160;    /* biru */
-  --re-green: 102 187 68;  /* hijau */
-  --re-orange: 245 158 11; /* oranye */
-  --re-ink: 10 22 39;      /* navy gelap */
+  --re-blue: 37 99 160;    /* Biru RE */
+  --re-green: 102 187 68;  /* Hijau RE */
+  --re-orange: 245 158 11; /* Oranye RE */
+  --re-ink: 10 22 39;      /* Navy gelap */
 }
 
 html, body {
   color: rgb(var(--re-ink));
   background:
-    radial-gradient(1200px 600px at 18% 12%, rgba(var(--re-blue),0.18), transparent 60%),
-    radial-gradient(900px 520px at 82% 18%, rgba(var(--re-green),0.14), transparent 55%),
-    radial-gradient(900px 520px at 62% 92%, rgba(var(--re-orange),0.10), transparent 55%),
-    linear-gradient(180deg, rgba(248,252,255,1), rgba(236,245,252,1));
+    radial-gradient(1200px 600px at 20% 10%, rgba(var(--re-blue),0.18), transparent 60%),
+    radial-gradient(900px 520px at 80% 20%, rgba(var(--re-green),0.14), transparent 55%),
+    radial-gradient(900px 520px at 60% 90%, rgba(var(--re-orange),0.10), transparent 55%),
+    linear-gradient(180deg, #f8fcff, #eef6fc);
 }
 
+/* Card */
 .re-card{
-  background: rgba(255,255,255,0.78);
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  box-shadow: 0 10px 30px rgba(2, 8, 23, 0.08);
+  background: rgba(255,255,255,0.82);
+  border: 1px solid rgba(15,23,42,0.10);
+  box-shadow: 0 12px 30px rgba(2,8,23,0.08);
   backdrop-filter: blur(10px);
 }
 
 .re-muted{
-  color: rgba(var(--re-ink), 0.70);
+  color: rgba(var(--re-ink), 0.72);
 }
 
-/* subtle geometric overlay */
-.re-geo {
+/* Subtle geometric background */
+.re-geo{
   position: relative;
   overflow: hidden;
 }
@@ -40,23 +43,28 @@ html, body {
   background:
     linear-gradient(135deg, rgba(var(--re-blue),0.08) 25%, transparent 25%) -40px 0/80px 80px,
     linear-gradient(225deg, rgba(var(--re-green),0.06) 25%, transparent 25%) -40px 0/80px 80px,
-    linear-gradient(315deg, rgba(var(--re-orange),0.05) 25%, transparent 25%) 0px 0/80px 80px,
-    linear-gradient(45deg, rgba(var(--re-blue),0.06) 25%, transparent 25%) 0px 0/80px 80px;
-  opacity: 0.55;
+    linear-gradient(315deg, rgba(var(--re-orange),0.05) 25%, transparent 25%) 0 0/80px 80px,
+    linear-gradient(45deg, rgba(var(--re-blue),0.06) 25%, transparent 25%) 0 0/80px 80px;
+  opacity: .55;
   pointer-events: none;
 }
 
-/* animated gradient headline (mobile-safe) */
-.re-gradient-text {
-  /* fallback kalau browser gagal clip */
+/* ===============================
+   Animated Gradient Text (SAFE)
+================================ */
+.re-gradient-text{
+  display: inline-block;           /* WAJIB */
+  line-height: 1.05;
+
+  /* fallback */
   color: rgb(var(--re-blue));
 
   background-image: linear-gradient(
     90deg,
-    rgba(var(--re-blue), 1),
-    rgba(var(--re-green), 1),
-    rgba(var(--re-orange), 1),
-    rgba(var(--re-blue), 1)
+    rgba(var(--re-blue),1),
+    rgba(var(--re-green),1),
+    rgba(var(--re-orange),1),
+    rgba(var(--re-blue),1)
   );
   background-size: 300% 100%;
   background-position: 0% 50%;
@@ -64,14 +72,14 @@ html, body {
   -webkit-background-clip: text;
   background-clip: text;
 
-  /* ini penting banget utk Safari/iOS biar gak jadi putih */
+  /* INI KUNCI BIAR NGGAK PUTIH */
   -webkit-text-fill-color: transparent;
 
   animation: reGradientMove 7s ease-in-out infinite;
 }
 
-@keyframes reGradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes reGradientMove{
+  0%{ background-position: 0% 50%; }
+  50%{ background-position: 100% 50%; }
+  100%{ background-position: 0% 50%; }
 }

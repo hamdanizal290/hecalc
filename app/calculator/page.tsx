@@ -2,33 +2,39 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { calcShell } from "../../lib/api650";
-import type { ShellInput, Unit } from "../../lib/api650";
+
+// IMPORT LANGSUNG KE FILE (paling aman, anti-error resolve)
+import { calcShell } from "../../lib/api650/shell";
+import type { ShellInput, Unit } from "../../lib/api650/types";
 
 export default function CalculatorPage() {
   const [input, setInput] = useState<ShellInput>({
     unit: "SI",
-    diameter: 30, // m / ft
-    height: 12, // m / ft
+    diameter: 30,
+    height: 12,
     courses: 6,
-    designLiquidHeight: 11, // m / ft
+    designLiquidHeight: 11,
     specificGravity: 1.0,
-    corrosionAllowance: 2, // mm / in
-    fy: 240, // MPa / ksi
-    jointEfficiency: 1.0, // 0..1
+    corrosionAllowance: 2,
+    fy: 240,
+    jointEfficiency: 1.0,
   });
 
-  const rows = useMemo(() => {
-    // amanin input courses biar ga aneh
-    const safeInput: ShellInput = {
+  const safeInput = useMemo<ShellInput>(() => {
+    return {
       ...input,
       courses: clampInt(input.courses, 1, 40),
       jointEfficiency: clamp(input.jointEfficiency, 0, 1),
       specificGravity: clamp(input.specificGravity, 0.5, 2.0),
+      diameter: Math.max(0, input.diameter || 0),
+      height: Math.max(0, input.height || 0),
+      designLiquidHeight: Math.max(0, input.designLiquidHeight || 0),
+      corrosionAllowance: Math.max(0, input.corrosionAllowance || 0),
+      fy: Math.max(0, input.fy || 0),
     };
-    return calcShell(safeInput);
   }, [input]);
 
+  const rows = useMemo(() => calcShell(safeInput), [safeInput]);
   const allOk = rows.every((r) => r.status === "OK");
 
   const unitLabel =
@@ -131,9 +137,8 @@ export default function CalculatorPage() {
 
             <div className="rounded-xl border border-white/10 p-4 text-sm opacity-80">
               <div className="font-medium mb-1">Catatan</div>
-              Ini masih <b>placeholder</b> untuk shell thickness (belum rumus API
-              650 asli). Tapi struktur engine-nya sudah siap buat kamu isi
-              modul-modul berikutnya.
+              Ini masih <b>placeholder</b> untuk perhitungan shell (belum rumus
+              API 650 asli). Tapi struktur engine-nya sudah siap.
             </div>
           </section>
 
@@ -157,12 +162,8 @@ export default function CalculatorPage() {
                 <thead className="bg-white/5">
                   <tr>
                     <th className="text-left p-3">Course</th>
-                    <th className="text-left p-3">
-                      Req t ({unitLabel.t})
-                    </th>
-                    <th className="text-left p-3">
-                      Adopt t ({unitLabel.t})
-                    </th>
+                    <th className="text-left p-3">Req t ({unitLabel.t})</th>
+                    <th className="text-left p-3">Adopt t ({unitLabel.t})</th>
                     <th className="text-left p-3">Status</th>
                   </tr>
                 </thead>
@@ -190,8 +191,7 @@ export default function CalculatorPage() {
             </div>
 
             <div className="text-xs opacity-60">
-              Next: bikin tab modul (Bottom/Roof/Wind/Seismic/Nozzle) + engine
-              placeholder per modul, baru isi rumus pelan-pelan.
+              Next: bikin tab modul (Bottom/Roof/Wind/Seismic/Nozzle).
             </div>
           </section>
         </div>
@@ -250,6 +250,5 @@ function clamp(x: number, min: number, max: number) {
 }
 
 function clampInt(x: number, min: number, max: number) {
-  const v = Math.floor(clamp(x, min, max));
-  return v;
+  return Math.floor(clamp(x, min, max));
 }

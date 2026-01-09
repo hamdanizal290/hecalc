@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { calcShell } from "@/lib/api650";
-import type { ShellInput, Unit } from "@/lib/api650";
+import { calcShell } from "../../lib/api650";
+import type { ShellInput, Unit } from "../../lib/api650";
 
 export default function CalculatorPage() {
   const [input, setInput] = useState<ShellInput>({

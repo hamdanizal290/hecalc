@@ -6,41 +6,50 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main className="min-h-screen p-6 re-geo">
-      <div className="mx-auto max-w-5xl relative">
+      <div className="mx-auto max-w-5xl">
         <section className="rounded-3xl re-card p-8 md:p-10">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-white/80 border border-black/10 flex items-center justify-center overflow-hidden">
-              <Image
-                src="/re-logo.png"
-                alt="Rekayasa Engineering Logo"
-                width={56}
-                height={56}
-                className="object-contain"
-                priority
-              />
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            {/* Logo */}
+            <div className="shrink-0">
+              <div className="h-20 w-20 md:h-24 md:w-24 rounded-3xl bg-white/85 border border-black/10 shadow-sm flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/re-logo.png"
+                  alt="Rekayasa Engineering Logo"
+                  width={120}
+                  height={120}
+                  className="object-contain scale-125" /* bikin logo landscape keliatan lebih gede */
+                  priority
+                />
+              </div>
             </div>
 
-            <div>
+            {/* Title */}
+            <div className="flex-1">
               <div className="text-sm re-muted">API 650 Tank Calculator</div>
-              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mt-1">
+
+              <h1 className="mt-2 text-4xl md:text-6xl font-extrabold leading-[1.05] tracking-tight">
                 <span className="re-gradient-text">TankCalc</span>{" "}
-                <span className="re-muted font-semibold">Web App</span>
+                <span className="text-[rgb(var(--re-ink))]">Web App</span>
               </h1>
-              <div className="text-sm re-muted mt-2">
+
+              <div className="text-sm re-muted mt-3">
                 Tema: Rekayasa Engineering (Blue / Green / Orange)
               </div>
             </div>
           </div>
 
-          <p className="text-lg md:text-xl re-muted mt-6 max-w-2xl">
+          {/* Description */}
+          <p className="text-lg md:text-xl re-muted mt-8 max-w-2xl">
             Web app interaktif untuk perhitungan tangki (SI/US), hasil table
             course, dan export report.
           </p>
 
-          <div className="mt-7 flex flex-wrap gap-3">
+          {/* Actions */}
+          <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/calculator"
-              className="px-6 py-3 rounded-2xl text-sm font-semibold text-white shadow
+              className="px-7 py-3.5 rounded-2xl text-sm font-semibold text-white shadow
                          bg-[rgb(var(--re-blue))] hover:opacity-95 transition"
             >
               Buka Kalkulator
@@ -48,7 +57,7 @@ export default function Home() {
 
             <button
               type="button"
-              className="px-6 py-3 rounded-2xl text-sm font-semibold border border-black/10
+              className="px-7 py-3.5 rounded-2xl text-sm font-semibold border border-black/10
                          bg-white/70 hover:bg-white/90 transition"
               onClick={() => alert("Info: API 650 TankCalc — coming soon ✨")}
             >
@@ -56,11 +65,12 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="mt-8 flex items-center gap-2 text-xs re-muted">
-            <span className="h-2 w-2 rounded-full bg-[rgb(var(--re-blue))]" />
-            <span className="h-2 w-2 rounded-full bg-[rgb(var(--re-green))]" />
-            <span className="h-2 w-2 rounded-full bg-[rgb(var(--re-orange))]" />
-            Brand colors applied
+          {/* Brand dots */}
+          <div className="mt-8 flex items-center gap-3 text-xs re-muted">
+            <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--re-blue))]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--re-green))]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--re-orange))]" />
+            <span>Brand colors applied</span>
           </div>
         </section>
       </div>

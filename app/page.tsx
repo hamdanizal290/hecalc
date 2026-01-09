@@ -26,12 +26,14 @@ export default function Home() {
 
             {/* TITLE */}
             <div className="flex-1">
-              <div className="text-sm re-muted">
-                API 650 Tank Calculator
-              </div>
+              <div className="text-sm re-muted">API 650 Tank Calculator</div>
 
               <h1 className="mt-2 text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05]">
-                <span className="re-gradient-text">TankCalc</span>{" "}
+                <span className="re-title">
+                  <span className="tank">Tank</span>
+                  <span className="calc">Calc</span>
+                  <span className="dot" aria-hidden="true" />
+                </span>{" "}
                 <span className="text-[rgb(var(--re-ink))]">Web App</span>
               </h1>
 
@@ -43,8 +45,8 @@ export default function Home() {
 
           {/* DESCRIPTION */}
           <p className="mt-8 max-w-2xl text-lg md:text-xl re-muted">
-            Web app interaktif untuk perhitungan tangki (SI/US),
-            hasil table course, dan export report.
+            Web app interaktif untuk perhitungan tangki (SI/US), hasil table
+            course, dan export report.
           </p>
 
           {/* ACTIONS */}

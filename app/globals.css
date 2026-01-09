@@ -24,3 +24,52 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* === Rekayasa Engineering Theme === */
+:root{
+  --re-blue: 37 99 160;   /* biru utama */
+  --re-green: 102 187 68; /* hijau aksen */
+  --re-orange: 245 158 11;/* oranye highlight */
+  --re-ink: 10 22 39;     /* warna teks gelap */
+}
+
+html, body {
+  color: rgb(var(--re-ink));
+  background:
+    radial-gradient(1200px 600px at 18% 12%, rgba(var(--re-blue),0.18), transparent 60%),
+    radial-gradient(900px 520px at 82% 18%, rgba(var(--re-green),0.14), transparent 55%),
+    radial-gradient(900px 520px at 62% 92%, rgba(var(--re-orange),0.10), transparent 55%),
+    linear-gradient(180deg, rgba(248,252,255,1), rgba(236,245,252,1));
+}
+
+/* Card “kaca” ala corporate */
+.re-card{
+  background: rgba(255,255,255,0.76);
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  box-shadow: 0 10px 30px rgba(2, 8, 23, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+/* teks sekunder */
+.re-muted{
+  color: rgba(var(--re-ink), 0.70);
+}
+
+/* Background geometric/polygon ringan */
+.re-geo {
+  position: relative;
+  overflow: hidden;
+}
+
+.re-geo::before{
+  content:"";
+  position:absolute;
+  inset:-80px;
+  background:
+    linear-gradient(135deg, rgba(var(--re-blue),0.08) 25%, transparent 25%) -40px 0/80px 80px,
+    linear-gradient(225deg, rgba(var(--re-green),0.06) 25%, transparent 25%) -40px 0/80px 80px,
+    linear-gradient(315deg, rgba(var(--re-orange),0.05) 25%, transparent 25%) 0px 0/80px 80px,
+    linear-gradient(45deg, rgba(var(--re-blue),0.06) 25%, transparent 25%) 0px 0/80px 80px;
+  opacity: 0.55;
+  pointer-events: none;
+}

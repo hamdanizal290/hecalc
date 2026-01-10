@@ -35,17 +35,20 @@ export interface ServiceDraft {
   specificGravity: number;
 
   /** Corrosion allowance:
-   *  - jika SI: mm
-   *  - jika US: in
+   *  - SI: mm
+   *  - US: in
    */
   corrosionAllowance: number;
 
   /** Liquid height per case:
-   *  - jika SI: m
-   *  - jika US: ft
+   *  - SI: m
+   *  - US: ft
    */
   liquidHeights: Partial<Record<DesignCaseKey, number>>;
 }
+
+export type GeometryInputMode = "capacity" | "manual";
+export type TargetCapacityUnit = "m3" | "bbl";
 
 export interface GeometryDraft {
   /** Diameter:
@@ -65,6 +68,12 @@ export interface GeometryDraft {
    *  - US: ft
    */
   courses: number[];
+
+  /** Traceability (opsional) */
+  inputMode?: GeometryInputMode;
+  presetKey?: string; // ex: SI_1800 / SI_2400 / US_72 / US_96
+  targetCapacity?: number;
+  targetCapacityUnit?: TargetCapacityUnit;
 }
 
 export interface MaterialsDraft {
@@ -74,7 +83,7 @@ export interface MaterialsDraft {
    */
   allowableStressDesign: number;
 
-  /** Allowable stress for hydrotest (jika case hydrotest aktif):
+  /** Allowable stress for hydrotest:
    *  - SI: MPa
    *  - US: psi
    */
@@ -89,7 +98,7 @@ export interface MaterialsDraft {
    */
   minNominalThickness: number;
 
-  /** Adopted/nominal plate thickness per course (including CA, assumed):
+  /** Adopted/nominal plate thickness per course (including CA assumed):
    *  - SI: mm
    *  - US: in
    */
@@ -100,6 +109,9 @@ export interface ProjectDraft {
   id: string;
   createdAt: string;
   updatedAt?: string;
+
+  // kalau sudah disimpan sebagai “Saved Project”, taruh ID-nya di sini
+  savedProjectId?: string;
 
   projectName: string;
   location?: string;
@@ -138,10 +150,10 @@ const CASE_KEYS: DesignCaseKey[] = [
   "steamout",
 ];
 
-function sanitizeDraft(raw: any): ProjectDraft | null {
+// IMPORTANT: diexport supaya bisa dipakai savedProjects storage
+export function sanitizeProjectDraft(raw: any): ProjectDraft | null {
   if (!raw || typeof raw !== "object") return null;
 
-  // Envelope: pastikan angka valid (hindari null akibat JSON dari NaN)
   const env = raw.envelope ?? {};
   const decision = raw.decision ?? {};
   const normalized = decision.normalized ?? {};
@@ -152,6 +164,8 @@ function sanitizeDraft(raw: any): ProjectDraft | null {
     id: String(raw.id ?? `draft-${Date.now()}`),
     createdAt: String(raw.createdAt ?? new Date().toISOString()),
     updatedAt: raw.updatedAt ? String(raw.updatedAt) : undefined,
+
+    savedProjectId: raw.savedProjectId ? String(raw.savedProjectId) : undefined,
 
     projectName: String(raw.projectName ?? ""),
     location: raw.location ? String(raw.location) : undefined,
@@ -214,12 +228,26 @@ function sanitizeDraft(raw: any): ProjectDraft | null {
   if (raw.geometry && typeof raw.geometry === "object") {
     const g = raw.geometry;
     const coursesRaw = Array.isArray(g.courses) ? g.courses : [];
-    const courses = coursesRaw.map((x: any) => sanitizeNumber(x, 0)).filter((x: number) => x > 0);
+    const courses = coursesRaw
+      .map((x: any) => sanitizeNumber(x, 0))
+      .filter((x: number) => x > 0);
+
+    const inputMode =
+      g.inputMode === "capacity" || g.inputMode === "manual" ? (g.inputMode as GeometryInputMode) : undefined;
+
+    const unit =
+      g.targetCapacityUnit === "m3" || g.targetCapacityUnit === "bbl"
+        ? (g.targetCapacityUnit as TargetCapacityUnit)
+        : undefined;
 
     draft.geometry = {
       diameter: sanitizeNumber(g.diameter, 0),
       shellHeight: sanitizeNumber(g.shellHeight, 0),
       courses,
+      inputMode,
+      presetKey: g.presetKey ? String(g.presetKey) : undefined,
+      targetCapacity: g.targetCapacity !== undefined ? sanitizeNumber(g.targetCapacity, 0) : undefined,
+      targetCapacityUnit: unit,
     };
   }
 
@@ -233,7 +261,10 @@ function sanitizeDraft(raw: any): ProjectDraft | null {
 
     draft.materials = {
       allowableStressDesign: sanitizeNumber(m.allowableStressDesign, 0),
-      allowableStressTest: sanitizeNumber(m.allowableStressTest, sanitizeNumber(m.allowableStressDesign, 0)),
+      allowableStressTest: sanitizeNumber(
+        m.allowableStressTest,
+        sanitizeNumber(m.allowableStressDesign, 0)
+      ),
       jointEfficiency: sanitizeNumber(m.jointEfficiency, 1),
       minNominalThickness: sanitizeNumber(m.minNominalThickness, units === "SI" ? 6 : 0.25),
       courseNominalThickness,
@@ -255,7 +286,7 @@ export function loadProjectDraft(): ProjectDraft | null {
 
   try {
     const parsed = JSON.parse(raw);
-    return sanitizeDraft(parsed);
+    return sanitizeProjectDraft(parsed);
   } catch {
     return null;
   }

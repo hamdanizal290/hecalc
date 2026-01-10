@@ -2,10 +2,152 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+
+type ModalKey = "about" | "changelog" | "roadmap" | "internal" | "support" | null;
+
+function Modal({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-lg rounded-3xl re-card p-6 md:p-7 border border-black/10 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="text-lg font-semibold text-[rgb(var(--re-blue))]">
+            {title}
+          </div>
+          <button
+            type="button"
+            className="px-3 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/85 hover:bg-white transition"
+            onClick={onClose}
+          >
+            Tutup
+          </button>
+        </div>
+
+        <div className="mt-3 text-sm re-muted leading-relaxed">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
-  const [openInfo, setOpenInfo] = useState(false);
+  const router = useRouter();
+  const [modal, setModal] = useState<ModalKey>(null);
+
+  const modalContent = useMemo(() => {
+    switch (modal) {
+      case "about":
+        return {
+          title: "Tentang TankCalc",
+          body: (
+            <>
+              TankCalc adalah tool internal untuk mendukung{" "}
+              <strong className="text-[rgb(var(--re-blue))]">
+                perhitungan & verifikasi desain tangki
+              </strong>{" "}
+              mengacu pada{" "}
+              <strong className="text-[rgb(var(--re-green))]">API 650</strong>.
+              Fokusnya: input ringkas, hasil jelas, dan siap untuk proses review.
+            </>
+          ),
+        };
+      case "changelog":
+        return {
+          title: "Changelog",
+          body: (
+            <>
+              Placeholder untuk catatan perubahan versi.
+              <ul className="mt-2 list-disc pl-5">
+                <li>v0.1 — UI home + struktur modul</li>
+                <li>v0.2 — shell thickness per course (planned)</li>
+                <li>v0.3 — export / report (planned)</li>
+              </ul>
+            </>
+          ),
+        };
+      case "roadmap":
+        return {
+          title: "Roadmap",
+          body: (
+            <>
+              Rencana pengembangan modul (bertahap):
+              <ul className="mt-2 list-disc pl-5">
+                <li>
+                  <strong className="text-[rgb(var(--re-blue))]">Shell</strong>{" "}
+                  (core)
+                </li>
+                <li>Bottom</li>
+                <li>Roof</li>
+                <li>Wind</li>
+                <li>Seismic</li>
+                <li>Nozzle reinforcement</li>
+                <li>Export PDF/Excel + report ringkas</li>
+              </ul>
+            </>
+          ),
+        };
+      case "internal":
+        return {
+          title: "Internal RE",
+          body: (
+            <>
+              Tool ini ditujukan untuk penggunaan internal divisi Mechanical.
+              Jika mau disebar ke luar tim, biasanya perlu rapihin:
+              <ul className="mt-2 list-disc pl-5">
+                <li>Dokumentasi asumsi & referensi clause</li>
+                <li>Validasi contoh kasus (benchmark)</li>
+                <li>Approval alur review</li>
+              </ul>
+            </>
+          ),
+        };
+      case "support":
+        return {
+          title: "Bantuan & Dukungan",
+          body: (
+            <>
+              Kalau nemu bug / butuh fitur:
+              <ul className="mt-2 list-disc pl-5">
+                <li>Catat input yang dipakai</li>
+                <li>Screenshot hasil</li>
+                <li>Tulis langkah reproduksi</li>
+              </ul>
+              <div className="mt-2">
+                (Placeholder) Nanti bisa diarahkan ke channel internal / PIC.
+              </div>
+            </>
+          ),
+        };
+      default:
+        return null;
+    }
+  }, [modal]);
+
+  // Helpers: kalau route belum ada, fallback alert biar tetap “klik = ada aksi”
+  const safePush = (path: string, fallbackMsg: string) => {
+    try {
+      router.push(path);
+    } catch {
+      alert(fallbackMsg);
+    }
+  };
 
   return (
     <main className="min-h-screen re-geo">
@@ -39,15 +181,29 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <button className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
+                onClick={() => setModal("changelog")}
+              >
                 Changelog
               </button>
-              <button className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70">
+
+              <button
+                type="button"
+                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
+                onClick={() => setModal("roadmap")}
+              >
                 Roadmap
               </button>
-              <span className="px-3 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/60 re-muted">
+
+              <button
+                type="button"
+                className="px-3 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/60 hover:bg-white/90 transition re-muted"
+                onClick={() => setModal("internal")}
+              >
                 Internal RE
-              </span>
+              </button>
             </div>
           </div>
 
@@ -63,7 +219,7 @@ export default function Home() {
                 <span className="re-title">
                   <span className="tank">Tank</span>
                   <span className="calc">Calc</span>
-                  <span className="dot" />
+                  <span className="dot" aria-hidden="true" />
                 </span>{" "}
                 <span className="text-[rgb(var(--re-ink))]">Web App</span>
               </h1>
@@ -74,13 +230,9 @@ export default function Home() {
                   perhitungan dan verifikasi desain tangki
                 </strong>{" "}
                 mengacu pada{" "}
-                <strong className="text-[rgb(var(--re-green))]">
-                  API 650
-                </strong>
+                <strong className="text-[rgb(var(--re-green))]">API 650</strong>
                 —input ringkas, hasil jelas, dan siap untuk proses review{" "}
-                <strong className="text-[rgb(var(--re-orange))]">
-                  (SI / US)
-                </strong>
+                <strong className="text-[rgb(var(--re-orange))]">(SI / US)</strong>
                 .
               </p>
 
@@ -89,23 +241,34 @@ export default function Home() {
                 <Link
                   href="/calculator"
                   className="px-10 py-4 rounded-2xl text-base md:text-lg font-semibold text-white
-                             bg-[rgb(var(--re-blue))] shadow"
+                             bg-[rgb(var(--re-blue))] hover:opacity-95 transition shadow"
                 >
                   Buka Kalkulator
                 </Link>
 
                 <button
-                  className="px-8 py-4 rounded-2xl text-base md:text-lg font-semibold text-[rgb(var(--re-blue))]"
-                  onClick={() => setOpenInfo(true)}
+                  type="button"
+                  className="px-8 py-4 rounded-2xl text-base md:text-lg font-semibold text-[rgb(var(--re-blue))] hover:opacity-90 transition"
+                  onClick={() => setModal("about")}
                 >
                   Tentang
                 </button>
 
-                <button className="px-8 py-4 rounded-2xl text-base md:text-lg font-semibold text-[rgb(var(--re-green))]">
+                <button
+                  type="button"
+                  className="px-8 py-4 rounded-2xl text-base md:text-lg font-semibold text-[rgb(var(--re-green))] hover:opacity-90 transition"
+                  onClick={() =>
+                    safePush(
+                      "/calculator?template=default",
+                      "Template Input belum tersedia. (Nanti bisa diarahkan ke preset input di halaman calculator.)"
+                    )
+                  }
+                >
                   Template Input
                 </button>
               </div>
 
+              {/* BRAND DOTS */}
               <div className="mt-10 flex items-center gap-3 text-sm re-muted">
                 <span className="h-3 w-3 rounded-full bg-[rgb(var(--re-blue))]" />
                 <span className="h-3 w-3 rounded-full bg-[rgb(var(--re-green))]" />
@@ -172,10 +335,24 @@ export default function Home() {
               </div>
 
               <div className="mt-6 flex flex-wrap gap-2">
-                <button className="px-4 py-2 rounded-2xl text-sm font-semibold text-[rgb(var(--re-blue))] border border-black/10">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-2xl text-sm font-semibold text-[rgb(var(--re-blue))] border border-black/10 hover:bg-white/70 transition"
+                  onClick={() =>
+                    safePush(
+                      "/docs",
+                      "Halaman Dokumentasi Teknis belum ada. (Nanti bisa dibuat route /docs.)"
+                    )
+                  }
+                >
                   Dokumentasi Teknis
                 </button>
-                <button className="px-4 py-2 rounded-2xl text-sm font-semibold text-[rgb(var(--re-green))] border border-black/10">
+
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-2xl text-sm font-semibold text-[rgb(var(--re-green))] border border-black/10 hover:bg-white/70 transition"
+                  onClick={() => setModal("support")}
+                >
                   Bantuan & Dukungan
                 </button>
               </div>
@@ -184,27 +361,12 @@ export default function Home() {
         </section>
       </div>
 
-      {/* MODAL */}
-      {openInfo && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          onClick={() => setOpenInfo(false)}
-        >
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div
-            className="relative w-full max-w-lg rounded-3xl re-card p-6 md:p-7"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-lg font-semibold text-[rgb(var(--re-blue))]">
-              Tentang TankCalc
-            </div>
-            <p className="mt-3 text-sm re-muted">
-              Tool internal untuk mendukung perhitungan dan verifikasi desain
-              tangki berbasis API 650 dengan pendekatan modular.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* MODAL RENDER */}
+      {modalContent ? (
+        <Modal title={modalContent.title} onClose={() => setModal(null)}>
+          {modalContent.body}
+        </Modal>
+      ) : null}
     </main>
   );
 }

@@ -62,10 +62,10 @@ export default function Home() {
           title: "Tentang TankCalc",
           body: (
             <>
-              TankCalc adalah tool internal untuk mendukung{" "}
-              <strong className="text-[rgb(var(--re-blue))]">perhitungan & verifikasi desain tangki</strong>{" "}
-              mengacu pada <strong className="text-[rgb(var(--re-green))]">API 650 / API 620</strong>.
-              Fokus: workflow project-based (design basis → cases → input → run → results) dan hasil siap review.
+              <strong className="text-[rgb(var(--re-blue))]">TankCalc</strong> adalah tool internal untuk mendukung{" "}
+              <strong className="text-[rgb(var(--re-green))]">desain & verifikasi storage tank</strong> mengacu pada{" "}
+              <strong className="text-[rgb(var(--re-blue))]">API 650 / API 620</strong>. Fokusnya workflow project-based
+              (design basis → cases → input → run → results) dengan output yang siap untuk proses review.
             </>
           ),
         };
@@ -112,8 +112,8 @@ export default function Home() {
           title: "Internal RE",
           body: (
             <>
-              Tool ini ditujukan untuk penggunaan internal divisi Mechanical.
-              Jika akan dipakai lintas tim/external, biasanya perlu:
+              Tool ini ditujukan untuk penggunaan internal divisi Mechanical. Jika akan dipakai lintas tim/external,
+              biasanya perlu:
               <ul className="mt-2 list-disc pl-5">
                 <li>Dokumentasi asumsi & mapping referensi clause</li>
                 <li>Benchmark contoh kasus (hand calc / existing sheet)</li>
@@ -165,11 +165,18 @@ export default function Home() {
               <div className="hidden sm:block">
                 <div className="text-xs md:text-sm re-muted">Tank Design Calculator (API 650 / API 620)</div>
                 <div className="mt-1 text-sm re-muted">Internal tool • Mechanical Engineering</div>
-                <div className="mt-1 text-sm re-muted">Developed by Anak Magang :)</div>
+                <div className="mt-1 text-xs re-muted">Prototype build • RE Mechanical</div>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <Link
+                href="/projects"
+                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
+              >
+                Saved Projects
+              </Link>
+
               <button
                 type="button"
                 className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
@@ -206,27 +213,32 @@ export default function Home() {
               <div className="text-xs md:text-sm re-muted">Desain & verifikasi tangki</div>
 
               <h1 className="mt-3 text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.03]">
-                <span className="re-title">
-                  <span className="tank">Tank</span>
-                  <span className="calc">Calc</span>
-                  <span className="dot" aria-hidden="true" />
-                </span>{" "}
+                <span className="re-animated-gradient">TankCalc</span>{" "}
                 <span className="text-[rgb(var(--re-ink))]">Web App</span>
               </h1>
 
+              {/* Branding copy (pengganti kalimat “Jalur utama…”) */}
               <p className="mt-6 max-w-2xl text-base md:text-lg re-muted leading-relaxed">
-                Jalur utama: <strong>Start Project</strong> → input awal (project + envelope) → sistem menentukan{" "}
-                <strong>API 650 / API 620</strong> → lanjut ke wizard (design cases, geometry, material) → hasil OK/NOT OK.
+                Platform internal Rekayasa Engineering untuk{" "}
+                <strong className="text-[rgb(var(--re-green))]">desain & verifikasi storage tank</strong> berbasis{" "}
+                <strong className="text-[rgb(var(--re-blue))]">API 650 / API 620</strong>. Input dibuat ringkas,
+                workflow berbentuk wizard, dan output disajikan untuk{" "}
+                <strong className="text-[rgb(var(--re-orange))]">review cepat</strong> (course-by-course, governing case,
+                OK/NOT OK).
               </p>
 
+              {/* Workflow cards */}
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { n: "01", t: "Project Initiation", d: "Nama project, units, tekanan/vakum, temperatur" },
-                  { n: "02", t: "Tank & Service", d: "Konfigurasi tank, fluida, CA, P/V per case" },
-                  { n: "03", t: "Design Cases", d: "Operating, hydrotest, empty + wind/seismic" },
-                  { n: "04", t: "Results & Report", d: "Course table, governing case, export (planned)" },
+                  { n: "02", t: "Tank & Service", d: "Konfigurasi tank, fluida, CA, geometry (auto/manual)" },
+                  { n: "03", t: "Materials", d: "Allowable, joint efficiency, adopted thickness per course" },
+                  { n: "04", t: "Results & Report", d: "Shell table, status, simpan project, export PDF/Excel" },
                 ].map((x) => (
-                  <div key={x.n} className="rounded-2xl border border-black/10 bg-white/60 p-4 hover:bg-white/75 transition">
+                  <div
+                    key={x.n}
+                    className="rounded-2xl border border-black/10 bg-white/60 p-4 hover:bg-white/75 transition"
+                  >
                     <div className="flex items-baseline justify-between">
                       <div className="text-sm font-semibold text-[rgb(var(--re-blue))]">{x.t}</div>
                       <div className="text-xs font-bold re-muted">{x.n}</div>
@@ -236,6 +248,7 @@ export default function Home() {
                 ))}
               </div>
 
+              {/* Actions */}
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
                   href="/projects/new"
@@ -277,15 +290,18 @@ export default function Home() {
               <div className="mt-5 space-y-3">
                 {[
                   { name: "Project initiation (Step 0)", status: "Available" },
-                  { name: "Wizard input (Step 1+)", status: "Planned" },
+                  { name: "Wizard input (Step 1+)", status: "In progress" },
                   { name: "Shell (course verification)", status: "In progress" },
                   { name: "Bottom / annular", status: "Planned" },
                   { name: "Roof", status: "Planned" },
                   { name: "Wind", status: "Planned" },
                   { name: "Seismic", status: "Planned" },
-                  { name: "Export (PDF/Excel)", status: "Planned" },
+                  { name: "Export (PDF/Excel)", status: "Available" },
                 ].map((m) => (
-                  <div key={m.name} className="flex items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white/60 px-4 py-3">
+                  <div
+                    key={m.name}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white/60 px-4 py-3"
+                  >
                     <div className="text-sm font-semibold text-[rgb(var(--re-ink))]">{m.name}</div>
                     <span className="px-3 py-1 rounded-2xl text-xs font-semibold border border-black/10 bg-white/80 text-[rgb(var(--re-blue))]">
                       {m.status}
@@ -310,6 +326,11 @@ export default function Home() {
                 >
                   Bantuan & Dukungan
                 </button>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-4 text-sm re-muted leading-relaxed">
+                Target utama UI ini: engineer bisa bikin project, isi input minimal, dan dapat hasil yang bisa langsung
+                dipakai untuk review internal (traceable & konsisten).
               </div>
             </div>
           </div>

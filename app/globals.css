@@ -13,9 +13,9 @@
 html, body {
   color: rgb(var(--re-ink));
   background:
-    radial-gradient(1200px 600px at 20% 10%, rgba(var(--re-blue),0.18), transparent 60%),
-    radial-gradient(900px 520px at 80% 20%, rgba(var(--re-green),0.14), transparent 55%),
-    radial-gradient(900px 520px at 60% 90%, rgba(var(--re-orange),0.10), transparent 55%),
+    radial-gradient(1200px 600px at 20% 10%, rgba(var(--re-blue),0.14), transparent 60%),
+    radial-gradient(900px 520px at 80% 20%, rgba(var(--re-green),0.10), transparent 55%),
+    radial-gradient(900px 520px at 60% 90%, rgba(var(--re-orange),0.08), transparent 55%),
     linear-gradient(180deg, #f8fcff, #eef6fc);
 }
 
@@ -32,10 +32,10 @@ html, body {
   position:absolute;
   inset:-80px;
   background:
-    linear-gradient(135deg, rgba(var(--re-blue),0.08) 25%, transparent 25%) -40px 0/80px 80px,
-    linear-gradient(225deg, rgba(var(--re-green),0.06) 25%, transparent 25%) -40px 0/80px 80px,
-    linear-gradient(315deg, rgba(var(--re-orange),0.05) 25%, transparent 25%) 0 0/80px 80px,
-    linear-gradient(45deg, rgba(var(--re-blue),0.06) 25%, transparent 25%) 0 0/80px 80px;
+    linear-gradient(135deg, rgba(var(--re-blue),0.07) 25%, transparent 25%) -40px 0/80px 80px,
+    linear-gradient(225deg, rgba(var(--re-green),0.05) 25%, transparent 25%) -40px 0/80px 80px,
+    linear-gradient(315deg, rgba(var(--re-orange),0.04) 25%, transparent 25%) 0 0/80px 80px,
+    linear-gradient(45deg, rgba(var(--re-blue),0.05) 25%, transparent 25%) 0 0/80px 80px;
   opacity: .55;
   pointer-events: none;
 }
@@ -44,14 +44,14 @@ html, body {
    Glass card (panel kiri)
 ================================ */
 .re-card{
-  background: rgba(255,255,255,0.82);
+  background: rgba(255,255,255,0.86);
   border: 1px solid rgba(15,23,42,0.10);
   box-shadow: 0 12px 30px rgba(2,8,23,0.08);
   backdrop-filter: blur(10px);
 }
 
 /* ===============================
-   Title style
+   Solid "Logo-like" Title
 ================================ */
 .re-title {
   display: inline-flex;
@@ -71,70 +71,46 @@ html, body {
 }
 
 /* ===============================
-   Tinted buttons
-================================ */
-.re-btn-blue{
-  background: rgba(var(--re-blue), 0.07);
-  border: 1px solid rgba(var(--re-blue), 0.24);
-}
-.re-btn-blue:hover{ background: rgba(var(--re-blue), 0.12); }
-
-.re-btn-green{
-  background: rgba(var(--re-green), 0.08);
-  border: 1px solid rgba(var(--re-green), 0.24);
-}
-.re-btn-green:hover{ background: rgba(var(--re-green), 0.13); }
-
-/* ===============================
-   RIGHT PANEL (versi tegas)
-   - Hapus lapisan putih dominan
-   - Blob opacity dinaikin
-   - Tambah diagonal shape
+   Right Panel (color that shows!)
+   - Solid tinted base (bukan "nyaris putih")
+   - 2 blobs halus (blue + green)
+   - grid blueprint tipis
 ================================ */
 .re-right{
   position: relative;
   overflow: hidden;
   border-radius: 2rem;
-  border: 1px solid rgba(15,23,42,0.10);
-  box-shadow: 0 16px 38px rgba(2,8,23,0.10);
-  background:
-    radial-gradient(760px 520px at 92% 0%, rgba(var(--re-blue),0.38), transparent 62%),
-    radial-gradient(720px 520px at 0% 100%, rgba(var(--re-green),0.32), transparent 64%),
-    radial-gradient(520px 420px at 105% 58%, rgba(var(--re-orange),0.24), transparent 65%),
-    linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.56));
-  backdrop-filter: blur(10px);
+
+  /* Base tint yang JELAS tapi tetap soft */
+  background: rgba(var(--re-blue), 0.11);
+
+  border: 1px solid rgba(var(--re-blue), 0.22);
+  box-shadow: 0 18px 40px rgba(2,8,23,0.10);
 }
 
-/* diagonal band biar “ada bentuk” */
-.re-right::after{
-  content:"";
-  position:absolute;
-  inset:-120px -140px;
-  background: linear-gradient(
-    120deg,
-    rgba(var(--re-blue),0.08) 0%,
-    rgba(var(--re-blue),0.08) 22%,
-    transparent 22%,
-    transparent 55%,
-    rgba(var(--re-green),0.06) 55%,
-    rgba(var(--re-green),0.06) 72%,
-    transparent 72%
-  );
-  opacity: .9;
-  pointer-events:none;
-}
-
-/* grid engineering lebih kelihatan */
 .re-right::before{
+  /* blueprint grid */
   content:"";
   position:absolute;
   inset:0;
   background:
-    linear-gradient(rgba(15,23,42,0.07) 1px, transparent 1px) 0 0/26px 26px,
-    linear-gradient(90deg, rgba(15,23,42,0.07) 1px, transparent 1px) 0 0/26px 26px;
-  opacity: .38;
+    linear-gradient(rgba(15,23,42,0.06) 1px, transparent 1px) 0 0/26px 26px,
+    linear-gradient(90deg, rgba(15,23,42,0.06) 1px, transparent 1px) 0 0/26px 26px;
+  opacity: .55;
   pointer-events:none;
   mask-image: radial-gradient(circle at 55% 35%, black 45%, transparent 82%);
+}
+
+.re-right::after{
+  /* blobs via gradient layer */
+  content:"";
+  position:absolute;
+  inset:-120px;
+  background:
+    radial-gradient(340px 340px at 82% 10%, rgba(var(--re-blue),0.28), transparent 70%),
+    radial-gradient(360px 360px at 10% 92%, rgba(var(--re-green),0.24), transparent 72%),
+    radial-gradient(240px 240px at 105% 62%, rgba(var(--re-orange),0.16), transparent 72%);
+  pointer-events:none;
 }
 
 .re-right-content{
@@ -142,16 +118,18 @@ html, body {
   z-index: 1;
 }
 
-/* card item: glass + accent stripe */
+/* Cards inside right panel */
 .re-right-item{
-  position: relative;
-  background: rgba(255,255,255,0.80);
+  background: rgba(255,255,255,0.92);
   border: 1px solid rgba(15,23,42,0.10);
   border-radius: 1.25rem;
-  box-shadow: 0 10px 22px rgba(2,8,23,0.06);
-  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 18px rgba(2,8,23,0.06);
 }
 
+/* Accent stripe */
+.re-right-item{
+  position: relative;
+}
 .re-right-item::before{
   content:"";
   position:absolute;
@@ -160,10 +138,22 @@ html, body {
   bottom: 14px;
   width: 4px;
   border-radius: 999px;
+  background: rgba(var(--re-blue),0.70);
   opacity: .95;
-  background: rgba(var(--re-blue),0.75);
 }
+.re-accent-blue::before{ background: rgba(var(--re-blue),0.74); }
+.re-accent-green::before{ background: rgba(var(--re-green),0.74); }
+.re-accent-orange::before{ background: rgba(var(--re-orange),0.78); }
 
-.re-accent-blue::before{ background: rgba(var(--re-blue),0.78); }
-.re-accent-green::before{ background: rgba(var(--re-green),0.78); }
-.re-accent-orange::before{ background: rgba(var(--re-orange),0.80); }
+/* Optional subtle tinted buttons */
+.re-btn-blue{
+  background: rgba(var(--re-blue), 0.08);
+  border: 1px solid rgba(var(--re-blue), 0.24);
+}
+.re-btn-blue:hover{ background: rgba(var(--re-blue), 0.12); }
+
+.re-btn-green{
+  background: rgba(var(--re-green), 0.10);
+  border: 1px solid rgba(var(--re-green), 0.24);
+}
+.re-btn-green:hover{ background: rgba(var(--re-green), 0.14); }

@@ -41,7 +41,7 @@ html, body {
 }
 
 /* ===============================
-   Glass card (untuk panel kiri)
+   Glass card (panel kiri)
 ================================ */
 .re-card{
   background: rgba(255,255,255,0.82);
@@ -51,7 +51,7 @@ html, body {
 }
 
 /* ===============================
-   Solid "Logo-like" Title
+   Title style
 ================================ */
 .re-title {
   display: inline-flex;
@@ -71,7 +71,7 @@ html, body {
 }
 
 /* ===============================
-   Tinted buttons (subtle)
+   Tinted buttons
 ================================ */
 .re-btn-blue{
   background: rgba(var(--re-blue), 0.07);
@@ -86,7 +86,10 @@ html, body {
 .re-btn-green:hover{ background: rgba(var(--re-green), 0.13); }
 
 /* ===============================
-   RIGHT PANEL (Keluar dari glass biar warnanya muncul)
+   RIGHT PANEL (versi tegas)
+   - Hapus lapisan putih dominan
+   - Blob opacity dinaikin
+   - Tambah diagonal shape
 ================================ */
 .re-right{
   position: relative;
@@ -95,24 +98,43 @@ html, body {
   border: 1px solid rgba(15,23,42,0.10);
   box-shadow: 0 16px 38px rgba(2,8,23,0.10);
   background:
-    radial-gradient(900px 560px at 88% 0%, rgba(var(--re-blue),0.22), transparent 60%),
-    radial-gradient(900px 560px at 0% 100%, rgba(var(--re-green),0.18), transparent 62%),
-    radial-gradient(650px 420px at 100% 65%, rgba(var(--re-orange),0.14), transparent 65%),
-    linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42));
+    radial-gradient(760px 520px at 92% 0%, rgba(var(--re-blue),0.38), transparent 62%),
+    radial-gradient(720px 520px at 0% 100%, rgba(var(--re-green),0.32), transparent 64%),
+    radial-gradient(520px 420px at 105% 58%, rgba(var(--re-orange),0.24), transparent 65%),
+    linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.56));
   backdrop-filter: blur(10px);
 }
 
-/* engineering grid tipis */
+/* diagonal band biar “ada bentuk” */
+.re-right::after{
+  content:"";
+  position:absolute;
+  inset:-120px -140px;
+  background: linear-gradient(
+    120deg,
+    rgba(var(--re-blue),0.08) 0%,
+    rgba(var(--re-blue),0.08) 22%,
+    transparent 22%,
+    transparent 55%,
+    rgba(var(--re-green),0.06) 55%,
+    rgba(var(--re-green),0.06) 72%,
+    transparent 72%
+  );
+  opacity: .9;
+  pointer-events:none;
+}
+
+/* grid engineering lebih kelihatan */
 .re-right::before{
   content:"";
   position:absolute;
   inset:0;
   background:
-    linear-gradient(rgba(15,23,42,0.06) 1px, transparent 1px) 0 0/28px 28px,
-    linear-gradient(90deg, rgba(15,23,42,0.06) 1px, transparent 1px) 0 0/28px 28px;
-  opacity: .35;
+    linear-gradient(rgba(15,23,42,0.07) 1px, transparent 1px) 0 0/26px 26px,
+    linear-gradient(90deg, rgba(15,23,42,0.07) 1px, transparent 1px) 0 0/26px 26px;
+  opacity: .38;
   pointer-events:none;
-  mask-image: radial-gradient(circle at 52% 35%, black 42%, transparent 78%);
+  mask-image: radial-gradient(circle at 55% 35%, black 45%, transparent 82%);
 }
 
 .re-right-content{
@@ -120,17 +142,16 @@ html, body {
   z-index: 1;
 }
 
-/* cards di dalam panel kanan: glass kecil + accent bar */
+/* card item: glass + accent stripe */
 .re-right-item{
   position: relative;
-  background: rgba(255,255,255,0.78);
+  background: rgba(255,255,255,0.80);
   border: 1px solid rgba(15,23,42,0.10);
   border-radius: 1.25rem;
   box-shadow: 0 10px 22px rgba(2,8,23,0.06);
   backdrop-filter: blur(8px);
 }
 
-/* accent stripe di kiri card */
 .re-right-item::before{
   content:"";
   position:absolute;
@@ -139,11 +160,10 @@ html, body {
   bottom: 14px;
   width: 4px;
   border-radius: 999px;
-  background: rgba(var(--re-blue),0.55);
-  opacity: .9;
+  opacity: .95;
+  background: rgba(var(--re-blue),0.75);
 }
 
-/* variasi accent per card */
-.re-accent-blue::before{ background: rgba(var(--re-blue),0.60); }
-.re-accent-green::before{ background: rgba(var(--re-green),0.60); }
-.re-accent-orange::before{ background: rgba(var(--re-orange),0.65); }
+.re-accent-blue::before{ background: rgba(var(--re-blue),0.78); }
+.re-accent-green::before{ background: rgba(var(--re-green),0.78); }
+.re-accent-orange::before{ background: rgba(var(--re-orange),0.80); }

@@ -29,6 +29,73 @@ export type DesignCaseKey =
 
 export type DesignCasesDraft = Record<DesignCaseKey, boolean>;
 
+export interface ServiceDraft {
+  storedProduct?: string;
+  /** Specific gravity (dimensionless) */
+  specificGravity: number;
+
+  /** Corrosion allowance:
+   *  - jika SI: mm
+   *  - jika US: in
+   */
+  corrosionAllowance: number;
+
+  /** Liquid height per case:
+   *  - jika SI: m
+   *  - jika US: ft
+   */
+  liquidHeights: Partial<Record<DesignCaseKey, number>>;
+}
+
+export interface GeometryDraft {
+  /** Diameter:
+   *  - SI: m
+   *  - US: ft
+   */
+  diameter: number;
+
+  /** Total shell height:
+   *  - SI: m
+   *  - US: ft
+   */
+  shellHeight: number;
+
+  /** Course heights bottom→top:
+   *  - SI: m
+   *  - US: ft
+   */
+  courses: number[];
+}
+
+export interface MaterialsDraft {
+  /** Allowable stress for design condition:
+   *  - SI: MPa
+   *  - US: psi
+   */
+  allowableStressDesign: number;
+
+  /** Allowable stress for hydrotest (jika case hydrotest aktif):
+   *  - SI: MPa
+   *  - US: psi
+   */
+  allowableStressTest: number;
+
+  /** Joint efficiency E (0–1) */
+  jointEfficiency: number;
+
+  /** Minimum nominal thickness excluding CA:
+   *  - SI: mm
+   *  - US: in
+   */
+  minNominalThickness: number;
+
+  /** Adopted/nominal plate thickness per course (including CA, assumed):
+   *  - SI: mm
+   *  - US: in
+   */
+  courseNominalThickness: number[];
+}
+
 export interface ProjectDraft {
   id: string;
   createdAt: string;
@@ -43,9 +110,16 @@ export interface ProjectDraft {
   decision: StandardDecision;
   recommendedStandard: StandardKey;
 
-  // Step 1 output
+  // Step 1
   tankConfig?: TankConfigurationDraft;
   designCases?: DesignCasesDraft;
+
+  // Step 2
+  service?: ServiceDraft;
+  geometry?: GeometryDraft;
+
+  // Step 3
+  materials?: MaterialsDraft;
 }
 
 const STORAGE_KEY = "tankcalc:projectDraft";
@@ -55,13 +129,24 @@ const sanitizeNumber = (x: unknown, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const CASE_KEYS: DesignCaseKey[] = [
+  "operating",
+  "hydrotest",
+  "empty_wind",
+  "empty_seismic",
+  "vacuum",
+  "steamout",
+];
+
 function sanitizeDraft(raw: any): ProjectDraft | null {
   if (!raw || typeof raw !== "object") return null;
 
-  // Envelope: pastikan semua angka valid (hindari null akibat JSON dari NaN)
+  // Envelope: pastikan angka valid (hindari null akibat JSON dari NaN)
   const env = raw.envelope ?? {};
   const decision = raw.decision ?? {};
   const normalized = decision.normalized ?? {};
+
+  const units: UnitKey = raw.units === "US" ? "US" : "SI";
 
   const draft: ProjectDraft = {
     id: String(raw.id ?? `draft-${Date.now()}`),
@@ -71,10 +156,10 @@ function sanitizeDraft(raw: any): ProjectDraft | null {
     projectName: String(raw.projectName ?? ""),
     location: raw.location ? String(raw.location) : undefined,
 
-    units: (raw.units === "US" ? "US" : "SI") as UnitKey,
+    units,
 
     envelope: {
-      units: (raw.units === "US" ? "US" : "SI") as UnitKey,
+      units,
       designPressure: sanitizeNumber(env.designPressure, 0),
       designVacuum: sanitizeNumber(env.designVacuum, 0),
       tMin: sanitizeNumber(env.tMin, 0),
@@ -95,11 +180,66 @@ function sanitizeDraft(raw: any): ProjectDraft | null {
     },
 
     recommendedStandard: raw.recommendedStandard ?? decision.recommended ?? "API_650",
+
     tankConfig: raw.tankConfig,
     designCases: raw.designCases,
+    service: raw.service,
+    geometry: raw.geometry,
+    materials: raw.materials,
   };
 
   if (!draft.projectName) return null;
+
+  // sanitize service
+  if (raw.service && typeof raw.service === "object") {
+    const s = raw.service;
+    const liquidHeightsRaw = s.liquidHeights ?? {};
+    const liquidHeights: Partial<Record<DesignCaseKey, number>> = {};
+
+    for (const k of CASE_KEYS) {
+      if (liquidHeightsRaw[k] !== undefined) {
+        liquidHeights[k] = sanitizeNumber(liquidHeightsRaw[k], 0);
+      }
+    }
+
+    draft.service = {
+      storedProduct: s.storedProduct ? String(s.storedProduct) : undefined,
+      specificGravity: sanitizeNumber(s.specificGravity, 1),
+      corrosionAllowance: sanitizeNumber(s.corrosionAllowance, units === "SI" ? 2 : 0.125),
+      liquidHeights,
+    };
+  }
+
+  // sanitize geometry
+  if (raw.geometry && typeof raw.geometry === "object") {
+    const g = raw.geometry;
+    const coursesRaw = Array.isArray(g.courses) ? g.courses : [];
+    const courses = coursesRaw.map((x: any) => sanitizeNumber(x, 0)).filter((x: number) => x > 0);
+
+    draft.geometry = {
+      diameter: sanitizeNumber(g.diameter, 0),
+      shellHeight: sanitizeNumber(g.shellHeight, 0),
+      courses,
+    };
+  }
+
+  // sanitize materials
+  if (raw.materials && typeof raw.materials === "object") {
+    const m = raw.materials;
+    const thkRaw = Array.isArray(m.courseNominalThickness) ? m.courseNominalThickness : [];
+    const courseNominalThickness = thkRaw
+      .map((x: any) => sanitizeNumber(x, 0))
+      .filter((x: number) => x > 0);
+
+    draft.materials = {
+      allowableStressDesign: sanitizeNumber(m.allowableStressDesign, 0),
+      allowableStressTest: sanitizeNumber(m.allowableStressTest, sanitizeNumber(m.allowableStressDesign, 0)),
+      jointEfficiency: sanitizeNumber(m.jointEfficiency, 1),
+      minNominalThickness: sanitizeNumber(m.minNominalThickness, units === "SI" ? 6 : 0.25),
+      courseNominalThickness,
+    };
+  }
+
   return draft;
 }
 

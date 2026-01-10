@@ -40,38 +40,110 @@ export default function Home() {
                 <span className="text-[rgb(var(--re-ink))]">Web App</span>
               </h1>
 
-              {/* 1 kalimat highlight */}
+              {/* Catchy + lebih umum */}
               <p className="mt-4 max-w-3xl text-sm md:text-base re-muted leading-relaxed">
-                Kalkulator desain tangki API 650 untuk menghitung{" "}
-                <strong>shell thickness per course</strong> dan verifikasi{" "}
-                <strong>OK / NOT OK</strong> (SI / US).
+                Tool cepat untuk <strong>desain & verifikasi tangki API 650</strong> —
+                dari input sederhana sampai output yang siap direview (SI / US).
               </p>
+
+              {/* Quick chips biar gak sepi tapi tetap minimal */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="px-3 py-1.5 rounded-2xl text-xs border border-black/10 bg-white/70 re-muted">
+                  SI / US Units
+                </span>
+                <span className="px-3 py-1.5 rounded-2xl text-xs border border-black/10 bg-white/70 re-muted">
+                  Per-course check
+                </span>
+                <span className="px-3 py-1.5 rounded-2xl text-xs border border-black/10 bg-white/70 re-muted">
+                  OK / NOT OK
+                </span>
+                <span className="px-3 py-1.5 rounded-2xl text-xs border border-black/10 bg-white/70 re-muted">
+                  Modular (Shell/Bottom/Roof/Wind/Seismic/Nozzle)
+                </span>
+              </div>
             </div>
           </div>
 
           {/* ACTIONS */}
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            {/* Primary */}
             <Link
               href="/calculator"
-              className="px-8 py-3.5 rounded-2xl text-sm font-semibold text-white
+              className="px-10 py-4 rounded-2xl text-sm md:text-base font-semibold text-white
                          bg-[rgb(var(--re-blue))] hover:opacity-95 transition shadow"
             >
               Buka Kalkulator
             </Link>
 
+            {/* Secondary */}
             <button
               type="button"
-              className="px-6 py-3.5 rounded-2xl text-sm font-semibold
+              className="px-8 py-4 rounded-2xl text-sm md:text-base font-semibold
                          border border-black/10 bg-white/70 hover:bg-white/90 transition"
               onClick={() => setOpenInfo(true)}
               aria-haspopup="dialog"
               aria-expanded={openInfo}
             >
-              Info
+              Tentang
+            </button>
+
+            <button
+              type="button"
+              className="px-8 py-4 rounded-2xl text-sm md:text-base font-semibold
+                         border border-black/10 bg-white/70 hover:bg-white/90 transition"
+              onClick={() =>
+                alert(
+                  "Template Input (coming soon)\n\nIde: preset parameter umum (water, diesel, dll) + contoh pembagian course."
+                )
+              }
+            >
+              Template Input
+            </button>
+
+            <button
+              type="button"
+              className="px-8 py-4 rounded-2xl text-sm md:text-base font-semibold
+                         border border-black/10 bg-white/70 hover:bg-white/90 transition"
+              onClick={() =>
+                alert(
+                  "Dokumentasi (coming soon)\n\nNanti bisa diisi: sumber clause API 650, asumsi, definisi simbol, dan contoh kasus."
+                )
+              }
+            >
+              Dokumentasi
             </button>
           </div>
 
-          {/* BRAND DOTS (opsional, tapi masih minimalis & rapi) */}
+          {/* EXTRA ROW: link kecil (biar ada “produk feel”) */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs re-muted">
+            <button
+              type="button"
+              className="hover:underline underline-offset-4"
+              onClick={() =>
+                alert(
+                  "Changelog (coming soon)\n\nNanti bisa isi: versi, perubahan rumus, perbaikan UI, dll."
+                )
+              }
+            >
+              Changelog
+            </button>
+            <button
+              type="button"
+              className="hover:underline underline-offset-4"
+              onClick={() =>
+                alert(
+                  "Roadmap (coming soon)\n\n• Bottom\n• Roof\n• Wind\n• Seismic\n• Nozzle reinforcement\n• Export PDF/Excel"
+                )
+              }
+            >
+              Roadmap
+            </button>
+            <span className="text-[10px] px-2 py-1 rounded-xl border border-black/10 bg-white/60">
+              Internal RE
+            </span>
+          </div>
+
+          {/* BRAND DOTS */}
           <div className="mt-8 flex items-center gap-3 text-xs re-muted">
             <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--re-blue))]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--re-green))]" />
@@ -97,7 +169,7 @@ export default function Home() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-xs re-muted">Info</div>
+                <div className="text-xs re-muted">Tentang</div>
                 <div className="mt-1 text-lg font-semibold text-[rgb(var(--re-ink))]">
                   TankCalc (API 650)
                 </div>
@@ -112,9 +184,27 @@ export default function Home() {
             </div>
 
             <div className="mt-4 text-sm re-muted leading-relaxed">
-              Fokus saat ini: <strong>Shell thickness per course</strong> + status{" "}
-              <strong>OK / NOT OK</strong> dengan pilihan unit <strong>SI / US</strong>.
-              Modul lanjutan (Bottom/Roof/Wind/Seismic/Nozzle) disiapkan untuk tahap berikutnya.
+              TankCalc adalah platform kalkulator untuk kebutuhan desain/cek tangki sesuai API 650.
+              Targetnya: input cepat, hasil jelas, dan struktur modular buat pengembangan fitur lanjutan.
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="rounded-2xl border border-black/10 bg-white/55 p-4">
+                <div className="text-xs re-muted">Saat ini</div>
+                <ul className="mt-2 space-y-1 re-muted">
+                  <li>• Unit SI / US</li>
+                  <li>• Output per course + OK/NOT OK</li>
+                  <li>• Struktur modul sudah siap</li>
+                </ul>
+              </div>
+              <div className="rounded-2xl border border-black/10 bg-white/55 p-4">
+                <div className="text-xs re-muted">Next</div>
+                <ul className="mt-2 space-y-1 re-muted">
+                  <li>• Wind / Seismic</li>
+                  <li>• Bottom / Roof</li>
+                  <li>• Export PDF/Excel</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

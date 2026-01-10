@@ -10,12 +10,11 @@ export default function Home() {
   return (
     <main className="min-h-screen re-geo">
       <div className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
-        {/* FRAME luar (tanpa glass putih) */}
         <section className="rounded-[2rem]">
           {/* TOP BAR */}
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-6">
-              {/* LOGO (RECTANGLE / LANDSCAPE) — jangan diubah */}
+              {/* LOGO — jangan diubah */}
               <div className="shrink-0">
                 <div className="h-16 w-44 md:h-20 md:w-56 rounded-3xl bg-white/90 border border-black/10 shadow-sm flex items-center justify-center px-3">
                   <Image
@@ -43,11 +42,7 @@ export default function Home() {
               <button
                 type="button"
                 className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-                onClick={() =>
-                  alert(
-                    "Changelog (coming soon)\n\nNanti bisa diisi: versi, perubahan rumus, perbaikan UI, dll."
-                  )
-                }
+                onClick={() => alert("Changelog (coming soon)")}
               >
                 Changelog
               </button>
@@ -55,11 +50,7 @@ export default function Home() {
               <button
                 type="button"
                 className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-                onClick={() =>
-                  alert(
-                    "Roadmap (coming soon)\n\n• Shell\n• Bottom\n• Roof\n• Wind\n• Seismic\n• Nozzle reinforcement\n• Export PDF/Excel"
-                  )
-                }
+                onClick={() => alert("Roadmap (coming soon)")}
               >
                 Roadmap
               </button>
@@ -72,7 +63,7 @@ export default function Home() {
 
           {/* GRID */}
           <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-            {/* LEFT = glass card */}
+            {/* LEFT */}
             <div className="lg:col-span-7 re-card rounded-[2rem] p-8 md:p-10">
               <div className="text-xs md:text-sm re-muted">
                 Desain & verifikasi tangki
@@ -94,7 +85,6 @@ export default function Home() {
                 untuk proses review (SI / US).
               </p>
 
-              {/* ACTIONS */}
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
                   href="/calculator"
@@ -108,8 +98,6 @@ export default function Home() {
                   type="button"
                   className="px-8 py-4 rounded-2xl text-base md:text-lg font-semibold transition re-btn-blue"
                   onClick={() => setOpenInfo(true)}
-                  aria-haspopup="dialog"
-                  aria-expanded={openInfo}
                 >
                   Tentang
                 </button>
@@ -117,17 +105,12 @@ export default function Home() {
                 <button
                   type="button"
                   className="px-8 py-4 rounded-2xl text-base md:text-lg font-semibold transition re-btn-green"
-                  onClick={() =>
-                    alert(
-                      "Template Input (coming soon)\n\nIde: preset parameter umum + contoh pembagian course."
-                    )
-                  }
+                  onClick={() => alert("Template Input (coming soon)")}
                 >
                   Template Input
                 </button>
               </div>
 
-              {/* BRAND DOTS */}
               <div className="mt-10 flex items-center gap-3 text-sm re-muted">
                 <span className="h-3 w-3 rounded-full bg-[rgb(var(--re-blue))]" />
                 <span className="h-3 w-3 rounded-full bg-[rgb(var(--re-green))]" />
@@ -136,7 +119,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* RIGHT = colored panel with shapes */}
+            {/* RIGHT */}
             <div className="lg:col-span-5">
               <div className="re-right p-6 md:p-7">
                 <div className="re-right-content">
@@ -148,7 +131,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <span className="px-3 py-1.5 rounded-2xl text-xs font-semibold border border-black/10 bg-white/70">
+                    <span className="px-3 py-1.5 rounded-2xl text-xs font-semibold border border-black/10 bg-white/75">
                       API 650
                     </span>
                   </div>
@@ -194,24 +177,16 @@ export default function Home() {
                   <div className="mt-6 flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-                      onClick={() =>
-                        alert(
-                          "Dokumentasi Teknis (coming soon)\n\nNanti bisa diisi: referensi clause, asumsi, definisi simbol, contoh kasus."
-                        )
-                      }
+                      className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/75 hover:bg-white/95 transition"
+                      onClick={() => alert("Dokumentasi Teknis (coming soon)")}
                     >
                       Dokumentasi Teknis
                     </button>
 
                     <button
                       type="button"
-                      className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-                      onClick={() =>
-                        alert(
-                          "Bantuan & Dukungan (coming soon)\n\nNanti bisa diisi: cara lapor bug, request fitur, kontak PIC, dsb."
-                        )
-                      }
+                      className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/75 hover:bg-white/95 transition"
+                      onClick={() => alert("Bantuan & Dukungan (coming soon)")}
                     >
                       Bantuan & Dukungan
                     </button>
@@ -223,13 +198,10 @@ export default function Home() {
         </section>
       </div>
 
-      {/* ABOUT MODAL */}
+      {/* MODAL */}
       {openInfo ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Tentang TankCalc"
           onClick={() => setOpenInfo(false)}
         >
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
@@ -247,7 +219,7 @@ export default function Home() {
 
               <button
                 type="button"
-                className="px-3 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
+                className="px-3 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/75 hover:bg-white/95 transition"
                 onClick={() => setOpenInfo(false)}
               >
                 Tutup
@@ -256,8 +228,8 @@ export default function Home() {
 
             <div className="mt-4 text-sm re-muted leading-relaxed">
               TankCalc adalah platform kalkulator internal untuk mendukung proses desain dan verifikasi tangki
-              mengacu pada API 650. Fokus utama: alur input ringkas, hasil yang jelas, serta struktur modular
-              untuk pengembangan fitur lanjutan.
+              mengacu pada API 650. Fokus utama: alur input ringkas, hasil jelas, dan struktur modular untuk
+              pengembangan fitur lanjutan.
             </div>
           </div>
         </div>

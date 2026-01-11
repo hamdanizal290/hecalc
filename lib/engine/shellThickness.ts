@@ -27,11 +27,9 @@ export interface ShellCalcInput {
   allowableStressDesign: number; // SI: MPa, US: psi
   allowableStressTest: number; // SI: MPa, US: psi
   jointEfficiency: number; // 0..1
+  minNominalThickness: number; // SI: mm, US: in (excluding CA)
 
-  // min nominal thickness EXCLUDING CA (API min thickness, practical min, dll)
-  minNominalThickness: number; // SI: mm, US: in
-
-  // adopted thickness NOMINAL (umumnya sudah termasuk CA di dalam nominal plate)
+  // adopted/nominal thickness per course (including CA assumed)
   adoptedThicknesses: number[]; // SI: mm, US: in
 
   activeCases: ShellCaseInput[];
@@ -42,26 +40,19 @@ export interface CourseResult {
   courseHeight: number;
   bottomElevation: number;
 
-  // raw calc (tanpa min thickness; tapi sudah +CA sesuai formula/aturan)
-  tCalcByCase: Partial<Record<DesignCaseKey, number>>;
-
-  // setelah min thickness diterapkan
-  tRequiredByCase: Partial<Record<DesignCaseKey, number>>;
+  // Debug-friendly:
+  calcByCase: Partial<Record<DesignCaseKey, number>>; // t_calc (formula + CA, sebelum min)
+  requiredByCase: Partial<Record<DesignCaseKey, number>>; // t_required (setelah min)
 
   governingCase: DesignCaseKey;
 
-  // governing raw calc (sebelum min)
-  tCalcGoverning: number;
-
-  // governing required (sesudah min), nominal incl CA, min applied
-  tRequired: number;
+  tCalcGoverning: number; // t_calc untuk governing case (before min)
+  tRequired: number; // t_required untuk governing case (after min)
+  isMinControlled: boolean; // true kalau t_required = minNominal + CA (plateau)
 
   tAdopted: number;
   utilization: number; // tRequired / tAdopted
   status: "OK" | "NOT OK";
-
-  // true kalau t_required dikontrol minNominalThickness + CA (bukan hasil t_calc)
-  isMinControlled: boolean;
 }
 
 export interface ShellCalcResult {
@@ -77,8 +68,6 @@ export interface ShellCalcResult {
 
 const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
 
-const isFinitePos = (x: number) => Number.isFinite(x) && x > 0;
-
 export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
   const notes: string[] = [];
 
@@ -88,81 +77,56 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
   }
 
   const courseCount = input.courses.length;
-  if (courseCount <= 0) {
-    throw new Error("Courses kosong. Pastikan geometry sudah terisi.");
-  }
-
   if (input.adoptedThicknesses.length !== courseCount) {
     throw new Error("Jumlah adopted thickness harus sama dengan jumlah courses.");
   }
 
-  if (!isFinitePos(input.diameter)) {
-    throw new Error("Diameter tidak valid.");
-  }
-
-  if (!isFinitePos(input.specificGravity)) {
-    throw new Error("Specific gravity harus > 0.");
-  }
-
-  if (!Number.isFinite(input.corrosionAllowance) || input.corrosionAllowance < 0) {
-    throw new Error("Corrosion allowance (CA) harus >= 0.");
-  }
-
-  if (!isFinitePos(input.allowableStressDesign) || !isFinitePos(input.allowableStressTest)) {
-    throw new Error("Allowable stress harus > 0.");
-  }
-
-  if (!Number.isFinite(input.minNominalThickness) || input.minNominalThickness < 0) {
-    throw new Error("Min nominal thickness harus >= 0.");
-  }
-
-  // offsets for API 650 one-foot method
+  // API 650 one-foot method offset
   const offset = input.units === "SI" ? 0.3 : 1.0; // m or ft
-
-  // API 650 constants (sesuai yang sering dipakai di form API 650)
-  const constantSI = 4.9; // SI: output mm, D[m], H[m], S[MPa]
-  const constantUS = 2.6; // US: output in, D[ft], H[ft], S[psi]
+  const constantSI = 4.9; // API 650 SI form (mm)
+  const constantUS = 2.6; // API 650 US form (inch)
 
   const ca = input.corrosionAllowance;
-
-  // min thickness rule kita apply pada NOMINAL thickness (excl CA) + CA
   const minWithCA = input.minNominalThickness + ca;
 
   if (input.standard === "API_650") {
-    notes.push("API 650: One-Foot Method (evaluasi head pada 0.3 m / 1 ft di atas seam bawah tiap course).");
-    notes.push("Engine menghitung t_calc (rumus + CA) lalu t_required = max(t_calc, minNominal+CA).");
-    notes.push("Untuk tahap awal, internal pressure diabaikan (umumnya near-atmospheric).");
+    notes.push(
+      "API 650: One-Foot Method (evaluasi head pada 0.3 m / 1 ft di atas seam bawah tiap course)."
+    );
+    notes.push(
+      "Catatan: t_required = max(t_calc, minNominalThickness + CA). Kalau t_calc < minimum, hasil akan 'plateau' (rata/bulet)."
+    );
   } else {
-    notes.push("API 620: pendekatan hoop stress (thin-walled cylinder) P_total = P_internal + P_hydrostatic.");
-    notes.push("External pressure/vacuum buckling check belum di-cover pada tahap ini.");
+    notes.push(
+      "API 620: pendekatan hoop stress berbasis thin-walled cylinder (P_total = P_internal + P_hydrostatic)."
+    );
+    notes.push(
+      "Catatan: check external pressure/vacuum buckling belum masuk tahap ini (akan masuk modul stabilitas)."
+    );
   }
 
   const results: CourseResult[] = [];
 
   for (let i = 0; i < courseCount; i++) {
     const courseNo = i + 1;
-    const bottomElevation = sum(input.courses.slice(0, i)); // bottom seam elevation course i
+    const bottomElevation = sum(input.courses.slice(0, i));
     const courseHeight = input.courses[i];
 
-    const tCalcByCase: Partial<Record<DesignCaseKey, number>> = {};
-    const tRequiredByCase: Partial<Record<DesignCaseKey, number>> = {};
+    const calcByCase: Partial<Record<DesignCaseKey, number>> = {};
+    const requiredByCase: Partial<Record<DesignCaseKey, number>> = {};
 
-    // governing ditentukan dari tRequiredByCase (yang udah kena min)
     let governingCase: DesignCaseKey = input.activeCases[0]?.key ?? "operating";
     let governingReq = -Infinity;
-
-    // buat display/debug: governing raw calc
-    let governingCalc = -Infinity;
+    let governingCalc = 0;
 
     for (const c of input.activeCases) {
       const liquidHeight = c.liquidHeight;
 
-      // height of liquid ABOVE bottom seam of this course
-      // kalau liquidHeight < bottomElevation, berarti course ini di atas liquid line -> head 0
-      const H_seam = Math.max(0, liquidHeight - bottomElevation);
+      // Depth above bottom seam of this course
+      const depthAboveSeam = Math.max(0, liquidHeight - bottomElevation);
 
-      // one-foot evaluation point
-      const H_eff = Math.max(0, H_seam - offset);
+      // One-foot evaluation point offset
+      const H_eff = Math.max(0, depthAboveSeam - offset);
 
       const isHydrotest = c.key === "hydrotest";
       const G = isHydrotest ? 1.0 : input.specificGravity;
@@ -171,16 +135,15 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
       let tCalc = 0;
 
       if (input.standard === "API_650") {
-        // NOTE: internal pressure ignore (per catatan tool tahap awal)
         if (input.units === "SI") {
-          // t_calc (mm) = (4.9 * D(m) * (H_eff)(m) * G) / (S(MPa)*E) + CA(mm)
+          // t (mm) = (4.9 * D(m) * (H-0.3)(m) * G) / (S(MPa)*E) + CA(mm)
           tCalc = (constantSI * input.diameter * H_eff * G) / (S * E) + ca;
         } else {
-          // t_calc (in) = (2.6 * D(ft) * (H_eff)(ft) * G) / (S(psi)*E) + CA(in)
+          // t (in) = (2.6 * D(ft) * (H-1)(ft) * G) / (S(psi)*E) + CA(in)
           tCalc = (constantUS * input.diameter * H_eff * G) / (S * E) + ca;
         }
       } else {
-        // API 620 simplified hoop
+        // API 620 (simplified hoop stress basis)
         const P_hydro =
           input.units === "SI"
             ? 9.80665 * G * H_eff // kPa
@@ -188,35 +151,30 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
 
         const isEmptyCase = c.key === "empty_wind" || c.key === "empty_seismic";
         const P_int = isHydrotest || isEmptyCase ? 0 : Math.max(0, input.designPressure);
+
         const P_total = P_int + P_hydro;
 
         if (input.units === "SI") {
           const P_MPa = P_total / 1000; // kPa -> MPa
           const R_mm = (input.diameter * 1000) / 2; // m -> mm
-
           const denom = S * E - 0.6 * P_MPa;
           tCalc = denom <= 0 ? Number.POSITIVE_INFINITY : (P_MPa * R_mm) / denom + ca;
         } else {
-          const R_in = input.diameter * 6; // D(ft)*12/2 = D*6
+          const R_in = input.diameter * 6; // D(ft)*12/2
           const denom = S * E - 0.6 * P_total;
           tCalc = denom <= 0 ? Number.POSITIVE_INFINITY : (P_total * R_in) / denom + ca;
         }
       }
 
-      // Guard: jangan biarin NaN
-      if (!Number.isFinite(tCalc)) tCalc = Number.POSITIVE_INFINITY;
-
-      // apply minimum rule
       const tReq = Math.max(tCalc, minWithCA);
 
-      tCalcByCase[c.key] = tCalc;
-      tRequiredByCase[c.key] = tReq;
+      calcByCase[c.key] = tCalc;
+      requiredByCase[c.key] = tReq;
 
-      // governing by required
-      if (tReq > governingReq) {
+      if (tReq >= governingReq) {
         governingReq = tReq;
-        governingCase = c.key;
         governingCalc = tCalc;
+        governingCase = c.key;
       }
     }
 
@@ -224,27 +182,22 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
     const utilization = tAdopted > 0 ? governingReq / tAdopted : Number.POSITIVE_INFINITY;
     const status: "OK" | "NOT OK" = tAdopted >= governingReq ? "OK" : "NOT OK";
 
-    const isMinControlled =
-      Number.isFinite(governingCalc) && Number.isFinite(governingReq)
-        ? governingReq <= minWithCA + 1e-12
-        : false;
+    const eps = input.units === "SI" ? 1e-6 : 1e-9;
+    const isMinControlled = governingReq <= minWithCA + eps && governingCalc < minWithCA - eps;
 
     results.push({
       courseNo,
       courseHeight,
       bottomElevation,
-
-      tCalcByCase,
-      tRequiredByCase,
-
+      calcByCase,
+      requiredByCase,
       governingCase,
       tCalcGoverning: governingCalc,
       tRequired: governingReq,
-
+      isMinControlled,
       tAdopted,
       utilization,
       status,
-      isMinControlled,
     });
   }
 

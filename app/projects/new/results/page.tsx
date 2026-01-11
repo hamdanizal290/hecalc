@@ -6,13 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   loadProjectDraft,
-  updateProjectDraft,
   type ProjectDraft,
-  type DesignCaseKey,
-} from "../../../../lib/storage/projectDraft";
+} from "../../../lib/storage/projectDraft";
 
-import { runShellThickness } from "../../../../lib/engine/shellThickness";
-import { saveProjectSnapshot } from "../../../../lib/storage/savedProjects";
+import { runShellThickness } from "../../../lib/engine/shellThickness";
 
 function StepPill({
   label,
@@ -29,239 +26,129 @@ function StepPill({
         : "bg-white/60 re-muted";
 
   return (
-    <span className={`px-3 py-1.5 rounded-2xl text-xs font-semibold border border-black/10 ${cls}`}>
+    <span
+      className={`px-3 py-1.5 rounded-2xl text-xs font-semibold border border-black/10 ${cls}`}
+    >
       {label}
     </span>
   );
 }
 
-const CASE_NAME: Record<DesignCaseKey, string> = {
-  operating: "Operating",
-  hydrotest: "Hydrotest",
-  empty_wind: "Empty + Wind",
-  empty_seismic: "Empty + Seismic",
-  vacuum: "Vacuum",
-  steamout: "Steam-out",
-};
+const fmt = (x: number, digits = 2) =>
+  Number.isFinite(x) ? x.toFixed(digits) : "-";
 
-function getActiveCases(draft: ProjectDraft): DesignCaseKey[] {
-  const dc = draft.designCases;
-  if (!dc) return ["operating"];
-  return (Object.keys(dc) as DesignCaseKey[]).filter((k) => dc[k]);
-}
-
-function escapeHtml(s: string) {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function downloadTextFile(filename: string, content: string, mime: string) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function csvEscape(val: string) {
-  if (val.includes('"') || val.includes(",") || val.includes("\n") || val.includes("\r")) {
-    return `"${val.replaceAll('"', '""')}"`;
-  }
-  return val;
-}
-
-export default function NewProjectResultsPage() {
+export default function ResultsPage() {
   const [draft, setDraft] = useState<ProjectDraft | null>(null);
-  const [saveMsg, setSaveMsg] = useState<string>("");
+  const [hydrated, setHydrated] = useState(false);
+
+  const [showCalc, setShowCalc] = useState(true);
 
   useEffect(() => {
     setDraft(loadProjectDraft());
+    setHydrated(true);
   }, []);
 
-  const thkUnit = useMemo(() => (draft?.units === "US" ? "in" : "mm"), [draft]);
+  const units = draft?.units ?? "SI";
+  const lengthUnit = units === "US" ? "ft" : "m";
+  const thickUnit = units === "US" ? "in" : "mm";
 
-  const calc = useMemo(() => {
+  const minWithCA = useMemo(() => {
+    const ca = draft?.service?.corrosionAllowance;
+    const minNom = draft?.materials?.minNominalThickness;
+    if (!Number.isFinite(ca as number) || !Number.isFinite(minNom as number)) return NaN;
+    return (minNom as number) + (ca as number);
+  }, [draft]);
+
+  const engineResult = useMemo(() => {
     if (!draft) return null;
-    if (!draft.geometry || !draft.service || !draft.materials) return null;
 
-    const activeCases = getActiveCases(draft);
+    // minimal guard supaya ga nge-crash
+    if (!draft.geometry?.diameter) return null;
+    if (!draft.geometry?.courses?.length) return null;
+    if (!draft.service?.specificGravity) return null;
+    if (draft.service?.corrosionAllowance === undefined) return null;
+    if (!draft.materials) return null;
 
-    const activeCaseInputs = activeCases.map((k) => ({
+    const adopted = draft.materials.adoptedThicknesses ?? [];
+    if (adopted.length !== draft.geometry.courses.length) return null;
+
+    const activeCases = (draft.designCases
+      ? (Object.keys(draft.designCases) as any[]).filter((k) => draft.designCases?.[k])
+      : ["operating"]
+    ).map((k) => ({
       key: k,
       liquidHeight: draft.service?.liquidHeights?.[k] ?? 0,
     }));
 
     return runShellThickness({
       units: draft.units,
-      standard: draft.recommendedStandard === "API_620" ? "API_620" : "API_650",
+      standard: draft.recommendedStandard ?? "API_650",
+
       diameter: draft.geometry.diameter,
       courses: draft.geometry.courses,
+
       specificGravity: draft.service.specificGravity,
       corrosionAllowance: draft.service.corrosionAllowance,
-      designPressure: draft.envelope.designPressure,
+
+      designPressure: draft.envelope?.designPressure ?? 0,
+
       allowableStressDesign: draft.materials.allowableStressDesign,
       allowableStressTest: draft.materials.allowableStressTest,
       jointEfficiency: draft.materials.jointEfficiency,
       minNominalThickness: draft.materials.minNominalThickness,
-      adoptedThicknesses: draft.materials.courseNominalThickness,
-      activeCases: activeCaseInputs,
+      adoptedThicknesses: adopted,
+
+      activeCases,
     });
   }, [draft]);
 
-  const missing = useMemo(() => {
-    const m: string[] = [];
-    if (!draft) m.push("Draft project tidak ditemukan. Kembali ke Step 0.");
-    if (draft && !draft.geometry) m.push("Step 2 belum lengkap: geometry kosong.");
-    if (draft && !draft.service) m.push("Step 2 belum lengkap: service kosong.");
-    if (draft && !draft.materials) m.push("Step 3 belum lengkap: materials kosong.");
-    return m;
-  }, [draft]);
+  const criticalNote = useMemo(() => {
+    if (!engineResult) return null;
+    if (!Number.isFinite(minWithCA)) return null;
 
-  const fmt = (x: number) => {
-    if (!Number.isFinite(x)) return "∞";
-    return draft?.units === "US" ? x.toFixed(4) : x.toFixed(2);
-  };
+    const allFloored = engineResult.results.every((r) => {
+      // “Floored” kalau tRequired sama dengan minWithCA (within tolerance)
+      return Math.abs(r.tRequired - minWithCA) < 1e-6;
+    });
 
-  const handleSaveProject = () => {
-    if (!draft) return;
+    return allFloored
+      ? `Semua course terkena minimum thickness floor: t_required = max(t_calc, minNominal + CA) = ${fmt(minWithCA)} ${thickUnit}. Makanya t_required terlihat rata.`
+      : null;
+  }, [engineResult, minWithCA, thickUnit]);
 
-    const id = saveProjectSnapshot(draft, draft.savedProjectId);
-    updateProjectDraft({ savedProjectId: id });
-    setSaveMsg(`Project tersimpan. ID: ${id}`);
-    setTimeout(() => setSaveMsg(""), 4000);
-  };
-
-  const exportCSV = () => {
-    if (!draft || !calc) return;
-
-    const lines: string[] = [];
-    lines.push(["TankCalc Export", new Date().toISOString()].map(csvEscape).join(","));
-    lines.push(["Project", draft.projectName].map(csvEscape).join(","));
-    lines.push(["Standard", draft.recommendedStandard].map(csvEscape).join(","));
-    lines.push(["Units", draft.units].map(csvEscape).join(","));
-    lines.push([""].join(","));
-
-    // Header
-    lines.push(
-      [
-        "Course",
-        "Governing case",
-        `t_required (${thkUnit})`,
-        `t_adopted (${thkUnit})`,
-        "Utilization",
-        "Status",
-      ].map(csvEscape).join(",")
+  if (!hydrated) {
+    return (
+      <main className="min-h-screen re-geo">
+        <div className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
+          <div className="re-card rounded-[2rem] p-7 md:p-9">
+            <div className="text-sm re-muted">Memuat hasil...</div>
+          </div>
+        </div>
+      </main>
     );
+  }
 
-    for (const r of calc.results) {
-      lines.push(
-        [
-          String(r.courseNo),
-          CASE_NAME[r.governingCase],
-          fmt(r.tRequired),
-          fmt(r.tAdopted),
-          Number.isFinite(r.utilization) ? r.utilization.toFixed(3) : "INF",
-          r.status,
-        ].map(csvEscape).join(",")
-      );
-    }
-
-    const filenameSafe = draft.projectName.replaceAll(/[^\w\-]+/g, "_");
-    downloadTextFile(
-      `TankCalc_${filenameSafe}_ShellThickness.csv`,
-      lines.join("\n"),
-      "text/csv;charset=utf-8;"
+  if (!draft) {
+    return (
+      <main className="min-h-screen re-geo">
+        <div className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
+          <div className="re-card rounded-[2rem] p-7 md:p-9">
+            <div className="text-sm font-semibold text-red-600">
+              Draft project tidak ditemukan.
+            </div>
+            <div className="mt-4">
+              <Link
+                href="/projects/new"
+                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
+              >
+                Kembali ke Step 0
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
     );
-  };
-
-  const exportPDF = () => {
-    if (!draft || !calc) return;
-
-    const rows = calc.results
-      .map(
-        (r) => `
-        <tr>
-          <td>${r.courseNo}</td>
-          <td>${escapeHtml(CASE_NAME[r.governingCase])}</td>
-          <td><b>${escapeHtml(fmt(r.tRequired))}</b></td>
-          <td>${escapeHtml(fmt(r.tAdopted))}</td>
-          <td>${escapeHtml(Number.isFinite(r.utilization) ? r.utilization.toFixed(3) : "∞")}</td>
-          <td style="font-weight:700; color:${r.status === "OK" ? "green" : "crimson"}">${r.status}</td>
-        </tr>
-      `
-      )
-      .join("");
-
-    const html = `
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>TankCalc Report - ${escapeHtml(draft.projectName)}</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 24px; color:#111; }
-    .header { display:flex; align-items:center; gap:16px; }
-    .meta { margin-top: 12px; font-size: 12px; color:#444; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
-    th { background: #f4f6f8; text-align:left; }
-    .note { margin-top: 12px; font-size: 11px; color:#555; }
-    @media print { .no-print { display:none; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <img src="/re-logo.png" style="height:42px" />
-    <div>
-      <h2 style="margin:0">TankCalc — Shell Thickness Report</h2>
-      <div class="meta">
-        Project: <b>${escapeHtml(draft.projectName)}</b> • Standard: <b>${escapeHtml(draft.recommendedStandard)}</b> • Units: <b>${escapeHtml(draft.units)}</b>
-      </div>
-    </div>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Course</th>
-        <th>Governing case</th>
-        <th>t_required (${escapeHtml(thkUnit)})</th>
-        <th>t_adopted (${escapeHtml(thkUnit)})</th>
-        <th>Utilization</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rows}
-    </tbody>
-  </table>
-
-  <div class="note">
-    Export PDF menggunakan dialog print browser. Pilih “Save as PDF”.
-  </div>
-
-  <div class="no-print" style="margin-top:16px;">
-    <button onclick="window.print()">Print / Save as PDF</button>
-  </div>
-</body>
-</html>
-`;
-
-    const w = window.open("", "_blank", "noopener,noreferrer");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-  };
+  }
 
   return (
     <main className="min-h-screen re-geo">
@@ -284,7 +171,9 @@ export default function NewProjectResultsPage() {
 
             <div className="hidden sm:block">
               <div className="text-xs md:text-sm re-muted">Projects • New</div>
-              <div className="mt-1 text-sm re-muted">Step 4 — Shell Thickness Results</div>
+              <div className="mt-1 text-sm re-muted">
+                Step 4 — Shell Thickness Results
+              </div>
             </div>
           </div>
 
@@ -295,6 +184,7 @@ export default function NewProjectResultsPage() {
             >
               Kembali (Step 3)
             </Link>
+
             <Link
               href="/projects"
               className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
@@ -313,162 +203,210 @@ export default function NewProjectResultsPage() {
           <StepPill label="Step 4 • Results" state="active" />
         </div>
 
-        {/* CONTENT */}
-        <div className="mt-8 re-card rounded-[2rem] p-7 md:p-9">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-              <div className="text-xs re-muted">Ringkasan hasil</div>
-              <h1 className="mt-2 text-2xl md:text-3xl font-extrabold tracking-tight text-[rgb(var(--re-ink))]">
-                Shell Thickness — OK/NOT OK per Course
-              </h1>
-              <p className="mt-2 text-sm md:text-base re-muted leading-relaxed">
-                Output ini fokus pada kebutuhan tebal shell per course, governing case, dan status OK/NOT OK.
-              </p>
-            </div>
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+          {/* LEFT */}
+          <div className="lg:col-span-8 re-card rounded-[2rem] p-7 md:p-9">
+            <div className="text-xs re-muted">Ringkasan hasil</div>
+            <h1 className="mt-2 text-2xl md:text-3xl font-extrabold tracking-tight text-[rgb(var(--re-ink))]">
+              Shell Thickness — OK/NOT OK per Course
+            </h1>
+            <p className="mt-2 text-sm md:text-base re-muted leading-relaxed">
+              Di bawah ini ada dua angka: <strong>t_calc</strong> (hasil rumus)
+              dan <strong>t_required</strong> (sesudah minimum thickness).
+              Kalau t_required rata, biasanya karena minimum thickness floor yang dominan.
+            </p>
 
-            {draft ? (
-              <div className="rounded-2xl border border-black/10 bg-white/60 p-4 text-sm re-muted">
-                <div><strong className="text-[rgb(var(--re-ink))]">Project:</strong> {draft.projectName}</div>
-                <div><strong className="text-[rgb(var(--re-ink))]">Standard:</strong> {draft.recommendedStandard}</div>
-                <div><strong className="text-[rgb(var(--re-ink))]">Units:</strong> {draft.units}</div>
+            {/* Controls */}
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white/70 p-4">
+              <div className="text-sm font-semibold text-[rgb(var(--re-blue))]">
+                Tampilan tabel
               </div>
-            ) : null}
-          </div>
-
-          {/* SAVE + EXPORT */}
-          <div className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5">
-            <div className="text-sm font-semibold text-[rgb(var(--re-blue))]">Actions</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleSaveProject}
-                className="px-4 py-2 rounded-2xl text-sm font-semibold text-white bg-[rgb(var(--re-blue))] hover:opacity-95 transition shadow"
-              >
-                {draft?.savedProjectId ? "Update Project" : "Save Project"}
-              </button>
 
               <button
                 type="button"
-                onClick={exportPDF}
-                disabled={!calc}
-                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition disabled:opacity-50"
+                onClick={() => setShowCalc((v) => !v)}
+                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/80 hover:bg-white transition"
               >
-                Export PDF
-              </button>
-
-              <button
-                type="button"
-                onClick={exportCSV}
-                disabled={!calc}
-                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition disabled:opacity-50"
-              >
-                Export Excel (CSV)
+                {showCalc ? "Sembunyikan t_calc" : "Tampilkan t_calc"}
               </button>
             </div>
 
-            {saveMsg ? (
-              <div className="mt-3 text-sm text-[rgb(var(--re-green))] font-semibold">{saveMsg}</div>
-            ) : (
-              <div className="mt-3 text-xs re-muted">
-                PDF export memakai print dialog browser (pilih “Save as PDF”). Excel export berupa CSV.
-              </div>
-            )}
-          </div>
-
-          {missing.length > 0 ? (
-            <div className="mt-6 rounded-2xl border border-red-200 bg-white/80 p-5">
-              <div className="text-sm font-semibold text-red-600">Data belum lengkap</div>
-              <ul className="mt-2 list-disc pl-5 text-sm text-red-600">
-                {missing.map((x, i) => (
-                  <li key={i}>{x}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {calc ? (
-            <>
-              <div className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5">
-                <div className="text-sm font-semibold text-[rgb(var(--re-blue))]">Metode & catatan</div>
-                <div className="mt-2 text-sm re-muted">
-                  <div><strong>Method:</strong> {calc.method}</div>
+            {/* Notes */}
+            {engineResult?.notes?.length ? (
+              <div className="mt-6 rounded-2xl border border-black/10 bg-white/70 p-5">
+                <div className="text-sm font-semibold text-[rgb(var(--re-blue))]">
+                  Metode & catatan
+                </div>
+                <div className="mt-2 text-sm re-muted leading-relaxed">
+                  <div className="font-semibold text-[rgb(var(--re-ink))]">
+                    Method: {engineResult.method}
+                  </div>
                   <ul className="mt-2 list-disc pl-5">
-                    {calc.notes.map((n, i) => (
+                    {engineResult.notes.map((n, i) => (
                       <li key={i}>{n}</li>
                     ))}
                   </ul>
                 </div>
               </div>
+            ) : null}
 
-              <div className="mt-6 overflow-x-auto">
-                <table className="min-w-[900px] w-full border-separate border-spacing-0">
-                  <thead>
-                    <tr>
-                      {["Course", "Governing case", `t_required (${thkUnit})`, `t_adopted (${thkUnit})`, "Utilization", "Status"].map((h) => (
-                        <th
-                          key={h}
-                          className="text-left text-xs font-bold re-muted px-4 py-3 border-b border-black/10 bg-white/60"
-                        >
-                          {h}
+            {criticalNote ? (
+              <div className="mt-4 rounded-2xl border border-[rgb(var(--re-orange))]/30 bg-white/80 p-5">
+                <div className="text-sm font-semibold text-[rgb(var(--re-orange))]">
+                  Kenapa t_required rata?
+                </div>
+                <div className="mt-2 text-sm re-muted leading-relaxed">
+                  {criticalNote}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Table */}
+            <div className="mt-6 overflow-hidden rounded-2xl border border-black/10 bg-white/70">
+              <div className="overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-white/70">
+                    <tr className="text-left text-xs re-muted">
+                      <th className="px-4 py-3">Course</th>
+                      <th className="px-4 py-3">Governing case</th>
+
+                      {showCalc ? (
+                        <th className="px-4 py-3">
+                          t_calc ({thickUnit})
                         </th>
-                      ))}
+                      ) : null}
+
+                      <th className="px-4 py-3">
+                        t_required ({thickUnit})
+                      </th>
+                      <th className="px-4 py-3">
+                        t_adopted ({thickUnit})
+                      </th>
+                      <th className="px-4 py-3">Utilization</th>
+                      <th className="px-4 py-3">Status</th>
                     </tr>
                   </thead>
+
                   <tbody>
-                    {calc.results.map((r) => (
-                      <tr key={r.courseNo} className="bg-white/70">
-                        <td className="px-4 py-3 text-sm font-semibold text-[rgb(var(--re-ink))] border-b border-black/10">
-                          {r.courseNo}
-                        </td>
-                        <td className="px-4 py-3 text-sm re-muted border-b border-black/10">
-                          {CASE_NAME[r.governingCase]}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-[rgb(var(--re-blue))] border-b border-black/10">
-                          {fmt(r.tRequired)}
-                        </td>
-                        <td className="px-4 py-3 text-sm re-muted border-b border-black/10">
-                          {fmt(r.tAdopted)}
-                        </td>
-                        <td className="px-4 py-3 text-sm re-muted border-b border-black/10">
-                          {Number.isFinite(r.utilization) ? r.utilization.toFixed(3) : "∞"}
-                        </td>
-                        <td
-                          className={[
-                            "px-4 py-3 text-sm font-semibold border-b border-black/10",
-                            r.status === "OK" ? "text-[rgb(var(--re-green))]" : "text-red-600",
-                          ].join(" ")}
-                        >
-                          {r.status}
+                    {engineResult?.results?.map((r) => {
+                      const floored =
+                        Number.isFinite(minWithCA) &&
+                        Math.abs(r.tRequired - (minWithCA as number)) < 1e-6 &&
+                        r.tCalcGoverning < (minWithCA as number) - 1e-6;
+
+                      return (
+                        <tr key={r.courseNo} className="border-t border-black/5">
+                          <td className="px-4 py-3 font-semibold text-[rgb(var(--re-ink))]">
+                            {r.courseNo}
+                          </td>
+                          <td className="px-4 py-3 re-muted">
+                            {r.governingCase}
+                          </td>
+
+                          {showCalc ? (
+                            <td className="px-4 py-3 font-semibold text-[rgb(var(--re-blue))]">
+                              {fmt(r.tCalcGoverning, 2)}
+                            </td>
+                          ) : null}
+
+                          <td className="px-4 py-3 font-semibold text-[rgb(var(--re-blue))]">
+                            {fmt(r.tRequired, 2)}{" "}
+                            {floored ? (
+                              <span className="ml-2 inline-flex items-center rounded-full border border-black/10 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-[rgb(var(--re-orange))]">
+                                min thickness
+                              </span>
+                            ) : null}
+                          </td>
+
+                          <td className="px-4 py-3 re-muted">{fmt(r.tAdopted, 2)}</td>
+                          <td className="px-4 py-3 re-muted">{fmt(r.utilization, 3)}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={[
+                                "px-2.5 py-1 rounded-full text-xs font-semibold border border-black/10",
+                                r.status === "OK"
+                                  ? "bg-white/80 text-[rgb(var(--re-green))]"
+                                  : "bg-white/80 text-red-600",
+                              ].join(" ")}
+                            >
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {!engineResult ? (
+                      <tr>
+                        <td colSpan={showCalc ? 7 : 6} className="px-4 py-6 text-sm re-muted">
+                          Hasil belum bisa dihitung. Cek lagi input Step 2 (Service & Geometry) dan Step 3 (Materials).
                         </td>
                       </tr>
-                    ))}
+                    ) : null}
                   </tbody>
                 </table>
               </div>
-            </>
-          ) : null}
+            </div>
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Link
-              href="/projects/new/materials"
-              className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-            >
-              Edit Materials (Step 3)
-            </Link>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/projects/new/materials"
+                className="px-6 py-4 rounded-2xl text-base font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
+              >
+                Edit Materials (Step 3)
+              </Link>
 
-            <Link
-              href="/projects/new/service"
-              className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-            >
-              Edit Service & Geometry (Step 2)
-            </Link>
+              <Link
+                href="/projects/new/service"
+                className="px-6 py-4 rounded-2xl text-base font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
+              >
+                Edit Service & Geometry (Step 2)
+              </Link>
 
-            <Link
-              href="/"
-              className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-            >
-              Ke Beranda
-            </Link>
+              <Link
+                href="/"
+                className="px-6 py-4 rounded-2xl text-base font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
+              >
+                Ke Beranda
+              </Link>
+            </div>
+          </div>
+
+          {/* RIGHT */}
+          <div className="lg:col-span-4 re-card rounded-[2rem] p-6 md:p-7">
+            <div className="text-xs re-muted">Ringkasan</div>
+            <div className="mt-1 text-lg font-semibold text-[rgb(var(--re-blue))]">
+              Project Summary
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-black/10 bg-white/60 p-5 text-sm re-muted leading-relaxed">
+              <div>
+                <strong className="text-[rgb(var(--re-ink))]">Project:</strong>{" "}
+                {draft.projectName}
+              </div>
+              <div>
+                <strong className="text-[rgb(var(--re-ink))]">Standard:</strong>{" "}
+                {draft.recommendedStandard ?? "-"}
+              </div>
+              <div>
+                <strong className="text-[rgb(var(--re-ink))]">Units:</strong>{" "}
+                {draft.units}
+              </div>
+
+              <div className="mt-3">
+                <strong className="text-[rgb(var(--re-ink))]">Geometry:</strong>
+                <ul className="mt-2 list-disc pl-5">
+                  <li>D: {draft.geometry?.diameter ?? "-"} {lengthUnit}</li>
+                  <li>Hshell: {draft.geometry?.shellHeight ?? "-"} {lengthUnit}</li>
+                  <li>Courses: {draft.geometry?.courses?.length ?? "-"}</li>
+                </ul>
+              </div>
+
+              <div className="mt-3">
+                <strong className="text-[rgb(var(--re-ink))]">Min thickness floor:</strong>{" "}
+                {Number.isFinite(minWithCA) ? `${fmt(minWithCA)} ${thickUnit}` : "-"}
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -28,7 +28,7 @@ export interface ShellCalcInput {
   allowableStressTest: number; // SI: MPa, US: psi
   jointEfficiency: number; // 0..1
   minNominalThickness: number; // SI: mm, US: in (excluding CA)
-  adoptedThicknesses: number[]; // SI: mm, US: in (nominal incl CA assumed)
+  adoptedThicknesses: number[]; // SI: mm, US: in
 
   activeCases: ShellCaseInput[];
 }
@@ -38,22 +38,19 @@ export interface CourseResult {
   courseHeight: number;
   bottomElevation: number;
 
-  /** t_calc (sebelum minimum thickness), nominal termasuk CA */
-  tCalcByCase: Partial<Record<DesignCaseKey, number>>;
-
-  /** t_required (setelah minimum thickness), nominal termasuk CA */
+  // per case: thickness NOMINAL (incl CA) after minimum applied
   requiredByCase: Partial<Record<DesignCaseKey, number>>;
 
   governingCase: DesignCaseKey;
 
-  /** Governing t_calc */
+  // NEW: t_calc untuk governing case (sebelum minimum applied, sudah incl CA? -> di sini belum incl min, tapi incl CA? kita bikin konsisten: t_calc = rumus + CA)
   tCalc: number;
 
-  /** Governing t_required */
+  // tRequired = max(tCalc, minNominalThickness + CA)
   tRequired: number;
 
-  /** Apakah t_required dikunci oleh batas minimum thickness */
-  minThicknessApplied: boolean;
+  // NEW: apakah tRequired dikunci oleh minimum thickness
+  isMinControlled: boolean;
 
   tAdopted: number;
   utilization: number; // tRequired / tAdopted
@@ -95,12 +92,12 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
   const minWithCA = input.minNominalThickness + ca;
 
   if (input.standard === "API_650") {
-    notes.push("Metode: API 650 One-Foot Method.");
-    notes.push("Definisi: tinggi fluida efektif dievaluasi pada 0,3 m (1 ft) di atas sambungan bawah (lower seam) tiap course.");
-    notes.push("Catatan: pada tahap ini, tekanan internal diabaikan (umumnya tangki atmosferik).");
+    notes.push("API 650: Metode One-Foot (evaluasi head pada 0,3 m / 1 ft di atas sambungan bawah setiap course).");
+    notes.push("Catatan: t_required = max(t_calc, t_min + CA). Jika t_calc lebih kecil, hasil akan mengikuti minimum thickness.");
+    notes.push("Untuk tahap awal, tekanan internal diabaikan (umumnya mendekati atmosfer).");
   } else {
-    notes.push("Metode: API 620, pendekatan tegangan keliling (hoop stress) berbasis silinder dinding tipis.");
-    notes.push("P_total = P_internal + P_hidrostatik. Pemeriksaan buckling (vacuum/external) belum dicakup pada modul ini.");
+    notes.push("API 620: Pendekatan tegangan keliling (hoop stress) berbasis silinder dinding tipis (P_total = P_internal + P_hidrostatik).");
+    notes.push("Pemeriksaan buckling akibat tekanan eksternal/vakum belum dicakup pada tahap ini.");
   }
 
   const results: CourseResult[] = [];
@@ -110,13 +107,14 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
     const bottomElevation = sum(input.courses.slice(0, i));
     const courseHeight = input.courses[i];
 
-    const tCalcByCase: Partial<Record<DesignCaseKey, number>> = {};
     const requiredByCase: Partial<Record<DesignCaseKey, number>> = {};
 
     let governingCase: DesignCaseKey = input.activeCases[0]?.key ?? "operating";
-    let governingRequired = 0;
-    let governingCalc = 0;
-    let governingMinApplied = false;
+    let governingReq = 0;
+
+    // kita simpan t_calc dan flag min untuk governing
+    let governingTCalc = 0;
+    let governingIsMin = false;
 
     for (const c of input.activeCases) {
       const liquidHeight = c.liquidHeight;
@@ -129,10 +127,10 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
 
       const isHydrotest = c.key === "hydrotest";
       const G = isHydrotest ? 1.0 : input.specificGravity;
+
       const S = isHydrotest ? input.allowableStressTest : input.allowableStressDesign;
 
-      let tCalc = 0; // nominal incl CA, BEFORE min check
-
+      let tCalc = 0; // rumus + CA (belum minimum)
       if (input.standard === "API_650") {
         if (input.units === "SI") {
           // t (mm) = (4.9 * D(m) * (H-0.3)(m) * G) / (S(MPa)*E) + CA(mm)
@@ -150,6 +148,7 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
 
         const isEmptyCase = c.key === "empty_wind" || c.key === "empty_seismic";
         const P_int = isHydrotest || isEmptyCase ? 0 : Math.max(0, input.designPressure);
+
         const P_total = P_int + P_hydro;
 
         if (input.units === "SI") {
@@ -157,43 +156,42 @@ export function runShellThickness(input: ShellCalcInput): ShellCalcResult {
           const R_mm = (input.diameter * 1000) / 2; // m -> mm
           const denom = S * E - 0.6 * P_MPa;
 
-          tCalc = denom <= 0 ? Number.POSITIVE_INFINITY : (P_MPa * R_mm) / denom + ca; // mm
+          tCalc = denom <= 0 ? Number.POSITIVE_INFINITY : (P_MPa * R_mm) / denom + ca;
         } else {
           const R_in = input.diameter * 6; // D(ft) -> R(in): D*12/2
           const denom = S * E - 0.6 * P_total;
 
-          tCalc = denom <= 0 ? Number.POSITIVE_INFINITY : (P_total * R_in) / denom + ca; // in
+          tCalc = denom <= 0 ? Number.POSITIVE_INFINITY : (P_total * R_in) / denom + ca;
         }
       }
 
-      const tRequired = Math.max(tCalc, minWithCA);
-      const minApplied = tCalc < minWithCA;
+      const tReq = Math.max(tCalc, minWithCA);
+      const isMinControlled = tReq === minWithCA && tCalc < minWithCA;
 
-      tCalcByCase[c.key] = tCalc;
-      requiredByCase[c.key] = tRequired;
+      requiredByCase[c.key] = tReq;
 
-      if (tRequired >= governingRequired) {
-        governingRequired = tRequired;
+      // governing = max required
+      if (tReq >= governingReq) {
+        governingReq = tReq;
         governingCase = c.key;
-        governingCalc = tCalc;
-        governingMinApplied = minApplied;
+        governingTCalc = tCalc;
+        governingIsMin = isMinControlled;
       }
     }
 
     const tAdopted = input.adoptedThicknesses[i];
-    const utilization = tAdopted > 0 ? governingRequired / tAdopted : Number.POSITIVE_INFINITY;
-    const status: "OK" | "NOT OK" = tAdopted >= governingRequired ? "OK" : "NOT OK";
+    const utilization = tAdopted > 0 ? governingReq / tAdopted : Number.POSITIVE_INFINITY;
+    const status: "OK" | "NOT OK" = tAdopted >= governingReq ? "OK" : "NOT OK";
 
     results.push({
       courseNo,
       courseHeight,
       bottomElevation,
-      tCalcByCase,
       requiredByCase,
       governingCase,
-      tCalc: governingCalc,
-      tRequired: governingRequired,
-      minThicknessApplied: governingMinApplied,
+      tCalc: governingTCalc,
+      tRequired: governingReq,
+      isMinControlled: governingIsMin,
       tAdopted,
       utilization,
       status,

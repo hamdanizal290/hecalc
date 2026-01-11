@@ -128,7 +128,7 @@ export default function ResultsPage() {
         [
           r.courseNo,
           r.governingCase,
-          fmt(r.tCalcGoverning, 4),
+          fmt(r.tCalc, 4),
           fmt(r.tRequired, 4),
           fmt(r.tAdopted, 4),
           fmt(r.utilization, 4),

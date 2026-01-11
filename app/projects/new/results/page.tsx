@@ -3,15 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
-// ✅ FIX PATH (4 level)
-import {
-  loadProjectDraft,
-  updateProjectDraft,
-  type ProjectDraft,
-} from "../../../../lib/storage/projectDraft";
-
+import { loadProjectDraft } from "../../../../lib/storage/projectDraft";
 import { runShellThickness } from "../../../../lib/engine/shellThickness";
+import { saveCurrentDraftAsProject } from "../../../../lib/storage/savedProjects";
 
 function StepPill({
   label,
@@ -40,12 +36,13 @@ const fmt = (x: number, dp = 2) => {
 };
 
 export default function ResultsPage() {
-  const [draft, setDraft] = useState<ProjectDraft | null>(null);
+  const router = useRouter();
+
   const [hydrated, setHydrated] = useState(false);
+  const [draft, setDraft] = useState<any>(null);
 
   useEffect(() => {
-    const d = loadProjectDraft();
-    setDraft(d);
+    setDraft(loadProjectDraft());
     setHydrated(true);
   }, []);
 
@@ -53,100 +50,80 @@ export default function ResultsPage() {
     if (!draft) return null;
     if (!draft.geometry || !draft.service || !draft.materials) return null;
 
-    const units = draft.units;
-    const standard = (draft.recommendedStandard ?? "API_650") as any;
+    const units = draft.units as "SI" | "US";
+    const standard = (draft.recommendedStandard ?? "API_650") as "API_650" | "API_620";
 
-    const diameter = draft.geometry.diameter ?? NaN;
-    const courses = draft.geometry.courses ?? [];
+    const diameter = Number(draft.geometry.diameter ?? NaN);
+    const courses = (draft.geometry.courses ?? []) as number[];
 
     if (!Number.isFinite(diameter) || diameter <= 0) return null;
     if (!Array.isArray(courses) || courses.length === 0) return null;
 
-    const specificGravity = draft.service.specificGravity ?? 1;
-    const corrosionAllowance = draft.service.corrosionAllowance ?? (units === "US" ? 0.125 : 2);
+    const specificGravity = Number(draft.service.specificGravity ?? 1);
+    const corrosionAllowance = Number(draft.service.corrosionAllowance ?? (units === "US" ? 0.125 : 2));
 
-    const designPressure = (draft as any).envelope?.designPressure ?? 0;
+    const designPressure = Number(draft.envelope?.designPressure ?? 0);
 
-    const allowableStressDesign =
-      (draft.materials as any).allowableStressDesign ?? (units === "US" ? 20000 : 137);
-    const allowableStressTest =
-      (draft.materials as any).allowableStressTest ?? (units === "US" ? 21000 : 154);
-    const jointEfficiency = (draft.materials as any).jointEfficiency ?? 0.85;
+    const allowableStressDesign = Number(draft.materials.allowableStressDesign ?? (units === "US" ? 20000 : 137));
+    const allowableStressTest = Number(draft.materials.allowableStressTest ?? allowableStressDesign);
+    const jointEfficiency = Number(draft.materials.jointEfficiency ?? 0.85);
+    const minNominalThickness = Number(draft.materials.minNominalThickness ?? (units === "US" ? 0.25 : 6));
 
-    const minNominalThickness =
-      (draft.materials as any).minNominalThickness ?? (units === "US" ? 0.25 : 5);
-
-    // ✅ FIX: MaterialsDraft di project lo mungkin nggak punya "adoptedThicknesses"
-    // jadi ambil dari beberapa kemungkinan field, pake any biar TS aman.
-    const m: any = draft.materials as any;
-
-    const adoptedFromDraft: unknown =
-      m.adoptedThicknesses ??
-      m.adoptedThickness ?? // kadang orang namain gini
-      m.adoptedThicknessPerCourse ??
-      m.adoptedThicknessesPerCourse ??
-      m.thicknesses ?? // fallback nama generik
-      m.courseThicknesses;
-
-    let adoptedThicknesses: number[] = Array.isArray(adoptedFromDraft)
-      ? adoptedFromDraft.map((x) => Number(x))
+    // ✅ ini yang bener sesuai schema lo:
+    let adoptedThicknesses = Array.isArray(draft.materials.courseNominalThickness)
+      ? draft.materials.courseNominalThickness.map((x: any) => Number(x))
       : [];
 
-    // kalau panjangnya nggak match jumlah course, fallback default biar engine tetap jalan
-    const minWithCA = Number(minNominalThickness) + Number(corrosionAllowance);
+    // kalau belum diisi / mismatch, fallback supaya engine tetap jalan
+    const minWithCA = minNominalThickness + corrosionAllowance;
     if (adoptedThicknesses.length !== courses.length) {
       adoptedThicknesses = Array.from({ length: courses.length }, () => minWithCA);
     }
 
-    // active cases
-    const activeCaseKeys: any[] = draft.designCases
-      ? (Object.keys(draft.designCases) as any[]).filter((k) => (draft.designCases as any)?.[k])
+    const activeCaseKeys = draft.designCases
+      ? (Object.keys(draft.designCases) as any[]).filter((k) => draft.designCases?.[k])
       : ["operating"];
 
-    const liquidHeights = (draft.service as any).liquidHeights ?? {};
-
+    const liquidHeights = draft.service?.liquidHeights ?? {};
     const activeCases = activeCaseKeys.map((k) => ({
       key: k,
       liquidHeight: Number(liquidHeights?.[k] ?? 0),
     }));
 
-    try {
-      return runShellThickness({
-        units,
-        standard,
-
-        diameter,
-        courses,
-
-        specificGravity,
-        corrosionAllowance,
-
-        designPressure,
-
-        allowableStressDesign,
-        allowableStressTest,
-        jointEfficiency,
-
-        minNominalThickness,
-        adoptedThicknesses,
-
-        activeCases,
-      });
-    } catch {
-      return null;
-    }
+    return runShellThickness({
+      units,
+      standard,
+      diameter,
+      courses,
+      specificGravity,
+      corrosionAllowance,
+      designPressure,
+      allowableStressDesign,
+      allowableStressTest,
+      jointEfficiency,
+      minNominalThickness,
+      adoptedThicknesses,
+      activeCases,
+    });
   }, [draft]);
 
+  const thicknessUnit = calc?.units === "SI" ? "mm" : "in";
+
   const handleSaveProject = () => {
-    if (!draft) return;
-    updateProjectDraft({ savedAt: new Date().toISOString() as any });
-    alert("Project disimpan (local storage).");
+    const id = saveCurrentDraftAsProject();
+    if (!id) {
+      alert("Draft project tidak ditemukan untuk disimpan.");
+      return;
+    }
+    alert("Project berhasil disimpan.");
+    router.push("/projects/saved");
   };
 
   const handleExportCSV = () => {
     if (!calc) return;
+
     const rows = [
-      ["Course", "GoverningCase", "t_calc", "t_required", "t_adopted", "Utilization", "Status"].join(","),
+      ["Course", "GoverningCase", `t_calc(${thicknessUnit})`, `t_required(${thicknessUnit})`, `t_adopted(${thicknessUnit})`, "Utilization", "Status"].join(","),
       ...calc.results.map((r) =>
         [
           r.courseNo,
@@ -217,7 +194,6 @@ export default function ResultsPage() {
             <div className="mt-3 text-sm re-muted">
               Pastikan Step 0–3 sudah terisi: service, geometry, dan materials.
             </div>
-
             <div className="mt-5 flex flex-wrap gap-2">
               <Link
                 href="/projects/new/materials"
@@ -237,8 +213,6 @@ export default function ResultsPage() {
       </main>
     );
   }
-
-  const thicknessUnit = calc.units === "SI" ? "mm" : "in";
 
   return (
     <main className="min-h-screen re-geo">
@@ -365,10 +339,7 @@ export default function ResultsPage() {
                   <tbody className="divide-y divide-black/10">
                     {calc.results.map((r) => (
                       <tr key={r.courseNo} className="hover:bg-white/60 transition">
-                        <td className="px-4 py-3 font-semibold text-[rgb(var(--re-ink))]">
-                          {r.courseNo}
-                        </td>
-
+                        <td className="px-4 py-3 font-semibold text-[rgb(var(--re-ink))]">{r.courseNo}</td>
                         <td className="px-4 py-3 re-muted">{r.governingCase}</td>
 
                         <td className="px-4 py-3 text-[rgb(var(--re-blue))] font-semibold">
@@ -401,28 +372,14 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            {/* FOOT ACTIONS */}
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Link
-                href="/projects/new/materials"
-                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-              >
-                Edit Materials (Step 3)
-              </Link>
-
-              <Link
-                href="/projects/new/service"
-                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-              >
-                Edit Service & Geometry (Step 2)
-              </Link>
-
-              <Link
-                href="/"
-                className="px-4 py-2 rounded-2xl text-sm font-semibold border border-black/10 bg-white/70 hover:bg-white/90 transition"
-              >
-                Ke Beranda
-              </Link>
+            {/* QUICK EXPLAIN */}
+            <div className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 text-sm re-muted leading-relaxed">
+              <div className="font-semibold text-[rgb(var(--re-ink))]">Kenapa nilai bisa “bulet” / rata?</div>
+              <div className="mt-2">
+                Karena engine apply <strong>minimum nominal thickness</strong>:
+                <strong> t_required = max(t_calc, minNominal + CA)</strong>.
+                Jadi kalau <strong>t_calc</strong> kecil (khususnya course atas), dia mentok di minimum.
+              </div>
             </div>
           </div>
 
@@ -438,10 +395,10 @@ export default function ResultsPage() {
             </div>
 
             <div className="mt-5 rounded-2xl border border-black/10 bg-white/60 p-5 text-sm re-muted leading-relaxed">
-              <div className="font-semibold text-[rgb(var(--re-ink))]">Kenapa t_required bisa “rata”?</div>
+              <div className="font-semibold text-[rgb(var(--re-ink))]">Debug cepat</div>
               <div className="mt-2">
-                Karena engine apply: <strong>t_required = max(t_calc, minNominal + CA)</strong>.
-                Kalau semua <strong>t_calc</strong> lebih kecil dari min, hasilnya bakal sama (ketahan min).
+                Lihat kolom <strong>t_calc</strong> vs <strong>t_required</strong>.
+                Kalau banyak yang ada badge <strong>min thickness</strong>, berarti minimum-nya yang “ngunci” hasil.
               </div>
             </div>
           </div>

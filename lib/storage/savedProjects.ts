@@ -1,95 +1,108 @@
 // lib/storage/savedProjects.ts
 
-import type { ProjectDraft } from "./projectDraft";
-import { sanitizeProjectDraft } from "./projectDraft";
+import {
+  loadProjectDraft,
+  saveProjectDraft,
+  sanitizeProjectDraft,
+  type ProjectDraft,
+} from "./projectDraft";
 
-export interface SavedProjectIndexItem {
+export interface SavedProjectMeta {
   id: string;
-  projectName: string;
-  standard: string;
-  units: string;
-  createdAt: string;
-  updatedAt: string;
+  name: string;
+  savedAt: string;
+  units: ProjectDraft["units"];
+  standard: ProjectDraft["recommendedStandard"];
 }
 
-const INDEX_KEY = "tankcalc:savedProjects:index";
-const DATA_PREFIX = "tankcalc:savedProjects:data:";
+interface SavedProjectRecord {
+  id: string;
+  savedAt: string;
+  draft: ProjectDraft;
+}
 
-function readIndex(): SavedProjectIndexItem[] {
+const STORAGE_KEY = "tankcalc:savedProjects";
+
+const readAll = (): SavedProjectRecord[] => {
   if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(INDEX_KEY);
+  const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as SavedProjectIndexItem[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((x) => {
+        const d = sanitizeProjectDraft(x?.draft);
+        if (!d) return null;
+        return {
+          id: String(x?.id ?? ""),
+          savedAt: String(x?.savedAt ?? ""),
+          draft: d,
+        } as SavedProjectRecord;
+      })
+      .filter(Boolean) as SavedProjectRecord[];
   } catch {
     return [];
   }
-}
+};
 
-function writeIndex(items: SavedProjectIndexItem[]) {
+const writeAll = (items: SavedProjectRecord[]) => {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(INDEX_KEY, JSON.stringify(items));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+};
+
+export function listSavedProjects(): SavedProjectMeta[] {
+  const items = readAll();
+  return items
+    .slice()
+    .sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1))
+    .map((x) => ({
+      id: x.id,
+      name: x.draft.projectName,
+      savedAt: x.savedAt,
+      units: x.draft.units,
+      standard: x.draft.recommendedStandard,
+    }));
 }
 
-export function listSavedProjects(): SavedProjectIndexItem[] {
-  return readIndex().sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+export function saveCurrentDraftAsProject(): string | null {
+  const draft = loadProjectDraft();
+  if (!draft) return null;
+
+  const id = `saved-${Date.now()}`;
+  const savedAt = new Date().toISOString();
+
+  const record: SavedProjectRecord = {
+    id,
+    savedAt,
+    draft: {
+      ...draft,
+      // updateAt tetap via updateProjectDraft, tapi snapshot ini punya timestamp sendiri
+      updatedAt: draft.updatedAt ?? draft.createdAt,
+      savedProjectId: id,
+    },
+  };
+
+  const items = readAll();
+  writeAll([record, ...items]);
+
+  // biar draft aktif juga nyimpen savedProjectId (traceability)
+  saveProjectDraft({ ...draft, savedProjectId: id, updatedAt: new Date().toISOString() });
+
+  return id;
 }
 
-export function loadSavedProject(id: string): ProjectDraft | null {
-  if (typeof window === "undefined") return null;
-  const raw = window.localStorage.getItem(DATA_PREFIX + id);
-  if (!raw) return null;
+export function loadSavedProjectIntoDraft(id: string): ProjectDraft | null {
+  const items = readAll();
+  const rec = items.find((x) => x.id === id);
+  if (!rec) return null;
 
-  try {
-    const parsed = JSON.parse(raw);
-    return sanitizeProjectDraft(parsed);
-  } catch {
-    return null;
-  }
+  // set jadi draft aktif
+  saveProjectDraft({ ...rec.draft, savedProjectId: id, updatedAt: new Date().toISOString() });
+  return rec.draft;
 }
 
 export function deleteSavedProject(id: string) {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(DATA_PREFIX + id);
-
-  const idx = readIndex().filter((x) => x.id !== id);
-  writeIndex(idx);
-}
-
-/**
- * Save snapshot draft jadi “project”.
- * Kalau existingId ada -> update.
- */
-export function saveProjectSnapshot(draft: ProjectDraft, existingId?: string): string {
-  if (typeof window === "undefined") return existingId ?? `proj-${Date.now()}`;
-
-  const now = new Date().toISOString();
-  const id = existingId ?? draft.savedProjectId ?? `proj-${Date.now()}`;
-
-  const snapshot: ProjectDraft = {
-    ...draft,
-    savedProjectId: id,
-    updatedAt: now,
-  };
-
-  window.localStorage.setItem(DATA_PREFIX + id, JSON.stringify(snapshot));
-
-  const index = readIndex();
-  const item: SavedProjectIndexItem = {
-    id,
-    projectName: draft.projectName,
-    standard: draft.recommendedStandard,
-    units: draft.units,
-    createdAt: draft.createdAt,
-    updatedAt: now,
-  };
-
-  const existing = index.find((x) => x.id === id);
-  const next = existing
-    ? index.map((x) => (x.id === id ? item : x))
-    : [item, ...index];
-
-  writeIndex(next);
-  return id;
+  const items = readAll().filter((x) => x.id !== id);
+  writeAll(items);
 }

@@ -3,7 +3,6 @@
 import {
   loadProjectDraft,
   saveProjectDraft,
-  sanitizeProjectDraft,
   type ProjectDraft,
 } from "./projectDraft";
 
@@ -12,7 +11,7 @@ export interface SavedProjectMeta {
   name: string;
   savedAt: string;
   units: ProjectDraft["units"];
-  standard: ProjectDraft["recommendedStandard"];
+  mode: ProjectDraft["mode"];
 }
 
 interface SavedProjectRecord {
@@ -21,7 +20,7 @@ interface SavedProjectRecord {
   draft: ProjectDraft;
 }
 
-const STORAGE_KEY = "tankcalc:savedProjects";
+const STORAGE_KEY = "heatexchanger:savedProjects";
 
 const readAll = (): SavedProjectRecord[] => {
   if (typeof window === "undefined") return [];
@@ -30,17 +29,7 @@ const readAll = (): SavedProjectRecord[] => {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((x) => {
-        const d = sanitizeProjectDraft(x?.draft);
-        if (!d) return null;
-        return {
-          id: String(x?.id ?? ""),
-          savedAt: String(x?.savedAt ?? ""),
-          draft: d,
-        } as SavedProjectRecord;
-      })
-      .filter(Boolean) as SavedProjectRecord[];
+    return parsed;
   } catch {
     return [];
   }
@@ -61,7 +50,7 @@ export function listSavedProjects(): SavedProjectMeta[] {
       name: x.draft.projectName,
       savedAt: x.savedAt,
       units: x.draft.units,
-      standard: x.draft.recommendedStandard,
+      mode: x.draft.mode,
     }));
 }
 
@@ -77,17 +66,14 @@ export function saveCurrentDraftAsProject(): string | null {
     savedAt,
     draft: {
       ...draft,
-      // updateAt tetap via updateProjectDraft, tapi snapshot ini punya timestamp sendiri
       updatedAt: draft.updatedAt ?? draft.createdAt,
-      savedProjectId: id,
     },
   };
 
   const items = readAll();
   writeAll([record, ...items]);
 
-  // biar draft aktif juga nyimpen savedProjectId (traceability)
-  saveProjectDraft({ ...draft, savedProjectId: id, updatedAt: new Date().toISOString() });
+  saveProjectDraft({ ...draft, updatedAt: new Date().toISOString() });
 
   return id;
 }
@@ -97,8 +83,7 @@ export function loadSavedProjectIntoDraft(id: string): ProjectDraft | null {
   const rec = items.find((x) => x.id === id);
   if (!rec) return null;
 
-  // set jadi draft aktif
-  saveProjectDraft({ ...rec.draft, savedProjectId: id, updatedAt: new Date().toISOString() });
+  saveProjectDraft({ ...rec.draft, updatedAt: new Date().toISOString() });
   return rec.draft;
 }
 

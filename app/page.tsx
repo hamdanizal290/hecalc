@@ -60,13 +60,13 @@ export default function Home() {
     switch (modal) {
       case "about":
         return {
-          title: "Tentang TankCalc",
+          title: "Tentang HeatExchangerCalc",
           body: (
             <>
-              <strong className="text-[rgb(var(--re-blue))]">TankCalc</strong> adalah tool internal untuk mendukung{" "}
-              <strong className="text-[rgb(var(--re-green))]">desain & verifikasi storage tank</strong> mengacu pada{" "}
-              <strong className="text-[rgb(var(--re-blue))]">API 650 / API 620</strong>. Fokusnya workflow project-based
-              (design basis → cases → input → run → results) dengan output yang siap untuk proses review.
+              <strong className="text-[rgb(var(--re-blue))]">HeatExchangerCalc</strong> adalah tool internal untuk mendukung{" "}
+              <strong className="text-[rgb(var(--re-green))]">desain & verifikasi heat exchanger</strong> mengacu pada{" "}
+              <strong className="text-[rgb(var(--re-blue))]">standard engineering</strong>. Fokusnya workflow project-based
+              (project init → fluid props → thermal specs → results) dengan output yang akurat.
             </>
           ),
         };
@@ -164,7 +164,7 @@ export default function Home() {
               </div>
 
               <div className="hidden sm:block">
-                <div className="text-xs md:text-sm re-muted">Tank Design Calculator (API 650 / API 620)</div>
+                <div className="text-xs md:text-sm re-muted">Heat Exchanger Design Calculator (Kern Method - TEMA)</div>
                 <div className="mt-1 text-sm re-muted">Internal tool • Mechanical Engineering</div>
                 <div className="mt-1 text-xs re-muted">Prototype build • RE Mechanical</div>
               </div>
@@ -211,30 +211,29 @@ export default function Home() {
               <div className="pointer-events-none absolute -top-24 -right-28 h-64 w-64 rounded-full bg-[rgb(var(--re-blue))]/10 blur-2xl" />
               <div className="pointer-events-none absolute -bottom-24 -left-28 h-64 w-64 rounded-full bg-[rgb(var(--re-green))]/10 blur-2xl" />
 
-              <div className="text-xs md:text-sm re-muted">Desain & verifikasi tangki</div>
+              <div className="text-xs md:text-sm re-muted">Desain & verifikasi heat exchanger</div>
 
               <h1 className="mt-3 text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.03]">
-                <span className="re-animated-gradient">TankCalc</span>{" "}
+                <span className="re-animated-gradient">HECalc</span>{" "}
                 <span className="text-[rgb(var(--re-ink))]">Web App</span>
               </h1>
 
               {/* Branding copy (pengganti kalimat “Jalur utama…”) */}
               <p className="mt-6 max-w-2xl text-base md:text-lg re-muted leading-relaxed">
                 Platform internal Rekayasa Engineering untuk{" "}
-                <strong className="text-[rgb(var(--re-green))]">desain & verifikasi storage tank</strong> berbasis{" "}
-                <strong className="text-[rgb(var(--re-blue))]">API 650 / API 620</strong>. Input dibuat ringkas,
-                workflow berbentuk wizard, dan output disajikan untuk{" "}
-                <strong className="text-[rgb(var(--re-orange))]">review cepat</strong> (course-by-course, governing case,
-                OK/NOT OK).
+                <strong className="text-[rgb(var(--re-green))]">desain & verifikasi shell & tube heat exchanger</strong>.
+                Input dibuat terstruktur, workflow berbentuk wizard, dan output mencakup{" "}
+                <strong className="text-[rgb(var(--re-orange))]">thermal & hydraulic</strong> (heat load, area, U-value,
+                pressure drop, OK/NOT OK).
               </p>
 
               {/* Workflow cards */}
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { n: "01", t: "Project Initiation", d: "Nama project, units, tekanan/vakum, temperatur" },
-                  { n: "02", t: "Tank & Service", d: "Konfigurasi tank, fluida, CA, geometry (auto/manual)" },
-                  { n: "03", t: "Materials", d: "Allowable, joint efficiency, adopted thickness per course" },
-                  { n: "04", t: "Results & Report", d: "Shell table, status, simpan project, export PDF/Excel" },
+                  { n: "01", t: "Project Initiation", d: "Nama project, unit system (SI/Imperial), design/rating mode" },
+                  { n: "02", t: "Fluid Properties", d: "Hot & Cold fluid, flowrate, temp, physical properties" },
+                  { n: "03", t: "Thermal Design", d: "LMTD, assume U, tube & shell specifications" },
+                  { n: "04", t: "Results & Verification", d: "Overall U check, pressure drop, thermal efficiency" },
                 ].map((x) => (
                   <div
                     key={x.n}
@@ -291,13 +290,11 @@ export default function Home() {
               <div className="mt-5 space-y-3">
                 {[
                   { name: "Project initiation (Step 0)", status: "Available" },
-                  { name: "Wizard input (Step 1+)", status: "In progress" },
-                  { name: "Shell (course verification)", status: "In progress" },
-                  { name: "Bottom / annular", status: "Planned" },
-                  { name: "Roof", status: "Planned" },
-                  { name: "Wind", status: "Planned" },
-                  { name: "Seismic", status: "Planned" },
-                  { name: "Export (PDF/Excel)", status: "Available" },
+                  { name: "Kern Method Initial Sizing", status: "Available" },
+                  { name: "Bell–Delaware Correction Factors", status: "In Progress" },
+                  { name: "Bell–Delaware Shell-side Press. Drop", status: "In Progress" },
+                  { name: "Select TEMA Class", status: "In Progress" },
+                  { name: "Results & Report", status: "Available" },
                 ].map((m) => (
                   <div
                     key={m.name}

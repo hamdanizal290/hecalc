@@ -1,358 +1,155 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import WorkflowSidebar from "../../../../components/WorkflowSidebar";
 
-import {
-  loadProjectDraft,
-  updateProjectDraft,
-  type ProjectDraft,
-  type DesignCaseKey,
-} from "../../../../lib/storage/projectDraft";
-
-import { runShellThickness } from "../../../../lib/engine/shellThickness";
-
-function StepPill({ label, active }: { label: string; active?: boolean }) {
+function SectionHeader({ title, icon, color }: { title: string; icon: string; color: string }) {
   return (
-    <span
-      className={[
-        "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border",
-        active
-          ? "bg-white border-black/10 text-[rgb(var(--re-blue))]"
-          : "bg-white/60 border-black/10 text-black/50",
-      ].join(" ")}
-    >
-      {label}
-    </span>
+    <div className="flex items-center gap-3">
+      <div className={`w-8 h-8 rounded-xl bg-[rgb(var(--${color}))] text-white flex items-center justify-center font-black text-xs shadow-lg`}>
+        {icon}
+      </div>
+      <h3 className="font-black text-[rgb(var(--re-ink))] uppercase tracking-widest text-xs">{title}</h3>
+    </div>
   );
 }
 
-const CASE_LABEL: Record<DesignCaseKey, string> = {
-  operating: "Operasi",
-  hydrotest: "Uji hidrostatik",
-  empty_wind: "Kosong (Angin)",
-  empty_seismic: "Kosong (Seismik)",
-  vacuum: "Vakum",
-  steamout: "Steam-out",
-};
-
-const CASE_ORDER: DesignCaseKey[] = [
-  "operating",
-  "hydrotest",
-  "empty_wind",
-  "empty_seismic",
-  "vacuum",
-  "steamout",
-];
-
-const fmt = (x: number, digits = 2) => {
-  if (!Number.isFinite(x)) return "-";
-  return x.toFixed(digits);
-};
-
 export default function ResultsPage() {
-  const [draft, setDraft] = useState<ProjectDraft | null>(null);
+  const router = useRouter();
+  const [project, setProject] = useState<any>(null);
 
   useEffect(() => {
-    setDraft(loadProjectDraft());
-  }, []);
+    const data = JSON.parse(localStorage.getItem("he_current_project") || "{}");
+    if (!data.results) {
+      router.push("/projects/new/thermal");
+      return;
+    }
+    setProject(data);
+  }, [router]);
 
-  const units = draft?.units === "US" ? "US" : "SI";
-  const standard = (draft?.recommendedStandard ?? "API_650") as "API_650" | "API_620";
+  if (!project) return null;
 
-  const calc = useMemo(() => {
-    if (!draft?.geometry || !draft?.service || !draft?.materials) return null;
+  const res = project.results;
 
-    const adoptedThicknesses = draft.materials.courseNominalThickness ?? [];
+  return (
+    <main className="min-h-screen re-geo pb-24">
+      <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
+        {/* TOP HEADER */}
+        <header className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-8">
+            <div className="h-16 w-48 rounded-[2rem] bg-white/90 border border-black/10 shadow-sm flex items-center justify-center p-3 relative group">
+              <Image src="/re-logo.png" alt="RE" width={160} height={50} />
+            </div>
+            <div className="hidden md:block">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[rgb(var(--re-muted))] opacity-50">Engineering Datasheet</div>
+              <div className="text-xl font-black text-[rgb(var(--re-ink))] mt-1 flex items-center gap-2">
+                Calc Results <span className="w-1.5 h-1.5 rounded-full bg-[rgb(var(--re-green))]" /> <span className="text-[rgb(var(--re-muted))] font-bold text-sm">{project.name}</span>
+              </div>
+            </div>
+          </div>
+          <Link href="/" className="px-6 py-3 rounded-2xl text-sm font-bold bg-white/70 border border-black/10 hover:bg-white transition">
+            Dashboard Project
+          </Link>
+        </header>
 
-    const activeCases = (draft.designCases
-      ? (CASE_ORDER.filter((k) => !!draft.designCases?.[k]) as DesignCaseKey[])
-      : ["operating"]) as DesignCaseKey[];
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* SIDEBAR */}
+          <div className="lg:col-span-3">
+            <WorkflowSidebar />
+          </div>
 
-    const casesInput = activeCases
-      .map((k) => ({
-        key: k,
-        liquidHeight:
-          draft.service?.liquidHeights?.[k] ??
-          (k === "hydrotest"
-            ? draft.service?.liquidHeights?.operating ?? 0
-            : draft.service?.liquidHeights?.operating ?? 0),
-      }))
-      .filter((c) => Number.isFinite(c.liquidHeight));
+          <div className="lg:col-span-9 space-y-8">
+            <div className="re-card rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden bg-white/80">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[rgb(var(--re-blue))]/5 to-transparent -mr-32 -mt-32 rounded-full" />
 
-    return runShellThickness({
-      units,
-      standard,
-      diameter: draft.geometry.diameter,
-      courses: draft.geometry.courses,
+              <div className="relative z-10">
+                <div className="border-b border-black/10 pb-6 mb-8 flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-black text-[rgb(var(--re-ink))] tracking-tight">Shell & Tube Heat Exchanger</h1>
+                    <p className="text-xs font-bold text-[rgb(var(--re-muted))] uppercase tracking-widest mt-1">Technical Specification Results</p>
+                  </div>
+                  <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${Math.abs(res.deviation) < 30 ? "bg-[rgb(var(--re-green))]/10 border-[rgb(var(--re-green))]/20 text-[rgb(var(--re-green))]" : "bg-[rgb(var(--re-orange))]/10 border-[rgb(var(--re-orange))]/20 text-[rgb(var(--re-orange))]"}`}>
+                    {Math.abs(res.deviation) < 30 ? "Design Passed" : "Check Optimization"}
+                  </div>
+                </div>
 
-      specificGravity: draft.service.specificGravity,
-      corrosionAllowance: draft.service.corrosionAllowance,
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
+                  <DataRow label="Project Name" value={project.name} />
+                  <DataRow label="Location" value={project.location || "-"} />
 
-      designPressure: draft.envelope?.designPressure ?? 0,
+                  <div className="col-span-full h-px bg-black/5 my-4" />
 
-      allowableStressDesign: draft.materials.allowableStressDesign,
-      allowableStressTest: draft.materials.allowableStressTest,
-      jointEfficiency: draft.materials.jointEfficiency,
-      minNominalThickness: draft.materials.minNominalThickness,
-      adoptedThicknesses,
+                  <DataRow label="Surface area" value={res.areaConsidered?.toFixed(2)} unit="m²" />
+                  <div /> {/* spacing */}
 
-      activeCases: casesInput,
-    });
-  }, [draft, units, standard]);
+                  <DataRow label="Overall h.t.c." value={res.overallUo?.toFixed(1)} unit="W/m²°C" />
+                  <DataRow label="Margin" value={Math.abs(res.deviation)?.toFixed(1)} unit="%" />
 
-  const projectName = draft?.projectName ?? "-";
+                  <div className="col-span-full h-px bg-black/5 my-4" />
 
-  const handleSaveProject = () => {
-    if (!draft) return;
-    // simpan timestamp update saja (sesuai tipe ProjectDraft)
-    updateProjectDraft({ updatedAt: new Date().toISOString() });
-    alert("Draft proyek telah diperbarui (tersimpan pada local storage).");
-  };
+                  <DataRow label="Tube passes" value={project.shell.tubePasses} />
+                  <DataRow label="Shell passes" value={project.shell.passes} />
 
-  if (!draft) {
-    return (
-      <div className="min-h-screen re-geo">
-        <div className="max-w-6xl mx-auto px-6 py-10">
-          <div className="re-card rounded-2xl border border-black/10 shadow-sm p-6">
-            <div className="text-sm text-black/60">Memuat data proyek...</div>
+                  <DataRow label="Tube OD" value={project.tube.od} unit="mm" />
+                  <DataRow label="Shell ID" value={(res.shellDiameter * 1000)?.toFixed(1)} unit="mm" />
+
+                  <DataRow label="Tube ID" value={project.tube.id} unit="mm" />
+                  <DataRow label="Baffle spacing" value={(res.shellDiameter * project.shell.baffleRatio * 1000)?.toFixed(0)} unit="mm" />
+
+                  <DataRow label="Tube length" value={project.tube.length} unit="m" />
+                  <DataRow label="Baffle cut" value={project.shell.baffleCut} unit="%" />
+
+                  <DataRow label="Tube layout" value={project.tube.pitchType === "triangular" ? "Triangular (30°)" : "Square (90°)"} />
+                  <DataRow label="Tube bundle dia." value={res.bundleDiameter?.toFixed(3)} unit="m" />
+
+                  <DataRow label="# of Tubes" value={res.numTubes} />
+                  <div />
+
+                  <div className="col-span-full h-px bg-black/5 my-4" />
+
+                  <div className="space-y-1">
+                    <DataRow label="Tube side h.t.c" value={res.tubeSide?.hi?.toFixed(1)} unit="W/m²°C" />
+                    <DataRow label="Tube pressure drop" value={(res.tubeSide?.pressureDrop / 1000)?.toFixed(4)} unit="kPa" color={res.tubeSide?.pressureDrop / 1000 > (project.cold.allowableDP * 100) ? "text-[rgb(var(--re-orange))]" : ""} />
+                  </div>
+                  <div className="space-y-1">
+                    <DataRow label="Shell side h.t.c" value={res.shellSide?.hs?.toFixed(1)} unit="W/m²°C" />
+                    <DataRow label="Shell pressure drop" value={(res.shellSide?.pressureDrop / 1000)?.toFixed(4)} unit="kPa" color={res.shellSide?.pressureDrop / 1000 > (project.hot.allowableDP * 100) ? "text-[rgb(var(--re-orange))]" : ""} />
+                  </div>
+                </div>
+
+                <div className="mt-12 pt-8 border-t border-black/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div className="text-[10px] font-bold re-muted max-w-sm uppercase tracking-wider">
+                    This datasheet is generated using the Kern Method.
+                    Please verify mechanical integrity according to ASME VIII Div 1.
+                  </div>
+                  <div className="flex gap-4">
+                    <button onClick={() => window.print()} className="px-6 py-3 rounded-2xl bg-black text-white text-sm font-bold hover:opacity-90 transition">
+                      Export PDF
+                    </button>
+                    <button onClick={() => router.push("/")} className="px-6 py-3 rounded-2xl border border-black/10 text-sm font-bold hover:bg-black/5 transition">
+                      Finish Project
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    );
-  }
+    </main>
+  );
+}
 
+function DataRow({ label, value, unit, color = "" }: { label: string, value: any, unit?: string, color?: string }) {
   return (
-    <div className="min-h-screen re-geo">
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-6">
-          <div>
-            <div className="text-xs text-black/50 mb-2">Ringkasan hasil</div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-[rgb(var(--re-ink))]">
-              Shell Thickness — OK/NOT OK per Course
-            </h1>
-          </div>
-
-          <div className="w-[280px] shrink-0">
-            <div className="text-xs text-black/50 mb-2">Ringkasan proyek</div>
-            <div className="re-card rounded-2xl border border-black/10 shadow-sm p-5">
-              <div className="text-sm leading-6">
-                <div>
-                  <span className="font-semibold">Project:</span>{" "}
-                  <span className="text-black/70">{projectName}</span>
-                </div>
-                <div>
-                  <span className="font-semibold">Standard:</span>{" "}
-                  <span className="text-black/70">{standard}</span>
-                </div>
-                <div>
-                  <span className="font-semibold">Units:</span>{" "}
-                  <span className="text-black/70">{units}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* NOTE BOX (dibikin baku) */}
-            <div className="mt-4 re-card rounded-2xl border border-black/10 shadow-sm p-5">
-              <div className="text-sm font-semibold text-[rgb(var(--re-ink))] mb-2">
-                Catatan singkat
-              </div>
-              <div className="text-sm leading-6 text-black/70">
-                <p>
-                  Periksa kolom <span className="font-semibold">t_calc</span> dan{" "}
-                  <span className="font-semibold">t_required</span>.
-                </p>
-                <p className="mt-2">
-                  Jika banyak baris menampilkan label{" "}
-                  <span className="font-semibold">Tebal minimum</span>, artinya{" "}
-                  persyaratan <span className="font-semibold">t_min + CA</span>{" "}
-                  yang menjadi pengendali (governing) hasil.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pills */}
-        <div className="mt-6 flex flex-wrap gap-2">
-          <StepPill label="Step 0 • Initiation" />
-          <StepPill label="Step 1 • Config & Cases" />
-          <StepPill label="Step 2 • Service & Geometry" />
-          <StepPill label="Step 3 • Materials" />
-          <StepPill label="Step 4 • Results" active />
-        </div>
-
-        {/* Actions */}
-        <div className="mt-6 re-card rounded-2xl border border-black/10 shadow-sm p-6">
-          <div className="text-sm font-semibold text-[rgb(var(--re-ink))] mb-3">Actions</div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={handleSaveProject}
-              className="px-4 py-2 rounded-full text-sm font-semibold bg-[rgb(var(--re-blue))] text-white shadow-sm hover:opacity-90"
-            >
-              Save Project
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 rounded-full text-sm font-semibold border border-black/10 bg-white hover:bg-black/5"
-            >
-              Export PDF
-            </button>
-            <button
-              onClick={() => alert("Export CSV: gunakan fitur yang sudah disediakan di modul export.")}
-              className="px-4 py-2 rounded-full text-sm font-semibold border border-black/10 bg-white hover:bg-black/5"
-            >
-              Export Excel (CSV)
-            </button>
-          </div>
-          <div className="mt-3 text-xs leading-5 text-black/55">
-            Ekspor PDF menggunakan dialog cetak browser (Save as PDF). Ekspor Excel menggunakan format CSV.
-          </div>
-        </div>
-
-        {/* Notes from engine */}
-        {calc?.notes?.length ? (
-          <div className="mt-6 re-card rounded-2xl border border-black/10 shadow-sm p-6">
-            <div className="text-sm font-semibold text-[rgb(var(--re-ink))] mb-2">Metode & catatan</div>
-            <div className="text-sm leading-6 text-black/70">
-              <div className="font-semibold text-[rgb(var(--re-ink))] mb-1">
-                Method: {calc.method}
-              </div>
-              <ul className="list-disc pl-5 space-y-1">
-                {calc.notes.map((n, idx) => (
-                  <li key={idx}>{n}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Table */}
-        <div className="mt-6 re-card rounded-2xl border border-black/10 shadow-sm p-0 overflow-hidden">
-          <div className="overflow-auto">
-            <table className="min-w-[900px] w-full text-sm">
-              <thead className="bg-white/70 border-b border-black/10">
-                <tr className="text-left text-black/60">
-                  <th className="px-4 py-3 font-semibold">Course</th>
-                  <th className="px-4 py-3 font-semibold">Governing case</th>
-                  <th className="px-4 py-3 font-semibold">
-                    t_calc{" "}
-                    <span className="font-normal">
-                      ({units === "SI" ? "mm" : "in"})
-                    </span>
-                  </th>
-                  <th className="px-4 py-3 font-semibold">
-                    t_required{" "}
-                    <span className="font-normal">
-                      ({units === "SI" ? "mm" : "in"})
-                    </span>
-                  </th>
-                  <th className="px-4 py-3 font-semibold">
-                    t_adopted{" "}
-                    <span className="font-normal">
-                      ({units === "SI" ? "mm" : "in"})
-                    </span>
-                  </th>
-                  <th className="px-4 py-3 font-semibold">Utilization</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {calc?.results?.map((r) => (
-                  <tr key={r.courseNo} className="border-b border-black/5">
-                    <td className="px-4 py-3 font-semibold text-[rgb(var(--re-ink))]">
-                      {r.courseNo}
-                    </td>
-
-                    <td className="px-4 py-3 text-black/70">
-                      {CASE_LABEL[r.governingCase] ?? r.governingCase}
-                    </td>
-
-                    <td className="px-4 py-3 text-[rgb(var(--re-blue))] font-semibold">
-                      {fmt(r.tCalc, 2)}
-                    </td>
-
-                    <td className="px-4 py-3 text-[rgb(var(--re-blue))] font-semibold">
-                      {fmt(r.tRequired, 2)}
-                      {r.isMinControlled ? (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border border-black/10 bg-white/80 text-[rgb(var(--re-orange))]">
-                          Tebal minimum
-                        </span>
-                      ) : null}
-                    </td>
-
-                    <td className="px-4 py-3 text-black/60">{fmt(r.tAdopted, 2)}</td>
-
-                    <td className="px-4 py-3 text-black/60">{fmt(r.utilization, 3)}</td>
-
-                    <td className="px-4 py-3">
-                      <span
-                        className={[
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border",
-                          r.status === "OK"
-                            ? "bg-white border-black/10 text-[rgb(var(--re-green))]"
-                            : "bg-white border-black/10 text-red-600",
-                        ].join(" ")}
-                      >
-                        {r.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {!calc?.results?.length ? (
-                  <tr>
-                    <td className="px-4 py-6 text-sm text-black/60" colSpan={7}>
-                      Data belum tersedia. Pastikan Step 1–3 telah terisi dengan benar.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Explanation card (dibikin baku) */}
-        <div className="mt-6 re-card rounded-2xl border border-black/10 shadow-sm p-6">
-          <div className="text-sm font-semibold text-[rgb(var(--re-ink))] mb-2">
-            Mengapa nilai bisa menjadi konstan (plateau)?
-          </div>
-          <div className="text-sm leading-6 text-black/70">
-            <p>
-              Karena perhitungan menerapkan <span className="font-semibold">ketebalan nominal minimum</span>:
-              {" "}
-              <span className="font-semibold">t_required = max(t_calc, t_min + CA)</span>.
-            </p>
-            <p className="mt-2">
-              Apabila <span className="font-semibold">t_calc</span> lebih kecil (umumnya pada course bagian atas),
-              maka <span className="font-semibold">t_required</span> akan mengikuti batas{" "}
-              <span className="font-semibold">t_min + CA</span>, sehingga terlihat “rata/konstan”.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer actions */}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href="/projects/new/materials"
-            className="px-4 py-2 rounded-full text-sm font-semibold border border-black/10 bg-white hover:bg-black/5"
-          >
-            Edit Materials (Step 3)
-          </Link>
-          <Link
-            href="/projects/new/service-geometry"
-            className="px-4 py-2 rounded-full text-sm font-semibold border border-black/10 bg-white hover:bg-black/5"
-          >
-            Edit Service & Geometry (Step 2)
-          </Link>
-          <Link
-            href="/"
-            className="px-4 py-2 rounded-full text-sm font-semibold border border-black/10 bg-white hover:bg-black/5"
-          >
-            Ke Beranda
-          </Link>
-        </div>
+    <div className="flex justify-between items-center py-2.5">
+      <div className="text-[11px] font-bold text-[rgb(var(--re-muted))] uppercase tracking-widest">{label}</div>
+      <div className={`text-sm font-black ${color || "text-[rgb(var(--re-ink))]"}`}>
+        {value ?? "-"}
+        {unit && <span className="ml-1 text-[10px] font-bold opacity-40">{unit}</span>}
       </div>
     </div>
   );

@@ -59,7 +59,7 @@ export default function ProjectsPage() {
             </div>
 
             <div>
-              <div className="text-xs re-muted">TankCalc</div>
+              <div className="text-xs re-muted">HeatExchangerCalc</div>
               <div className="text-lg font-semibold text-[rgb(var(--re-blue))]">
                 Saved Projects
               </div>
@@ -101,7 +101,7 @@ export default function ProjectsPage() {
                       {p.name}
                     </div>
                     <div className="mt-1 text-sm re-muted">
-                      {p.standard} • {p.units} • saved{" "}
+                      {p.mode} • {p.units} • saved{" "}
                       {new Date(p.savedAt).toLocaleString()}
                     </div>
                   </div>

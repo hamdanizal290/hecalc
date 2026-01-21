@@ -33,6 +33,8 @@ export interface ShellSpecs {
   baffleCut: number;
 }
 
+export type TemaClass = "R" | "B" | "C";
+
 export interface CalculationResult {
   heatLoad: number;
   coldFlowrate: number;
@@ -62,6 +64,18 @@ export interface CalculationResult {
   };
   overallUo: number;
   deviation: number;
+  bellDelaware?: {
+    jc: number;
+    jl: number;
+    jb: number;
+    js: number;
+    jr: number;
+    dpCross: number;
+    dpWindow: number;
+    dpLeak: number;
+    dpBypass: number;
+    dpEnd: number;
+  };
 }
 export interface Project {
   id: string;
@@ -69,6 +83,7 @@ export interface Project {
   location?: string;
   units: UnitSystem;
   mode: CalculationMode;
+  temaClass: TemaClass;
   step: number;
   hot: FluidProperties;
   cold: FluidProperties;

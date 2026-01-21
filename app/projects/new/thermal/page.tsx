@@ -50,6 +50,24 @@ export default function ThermalDesignPage() {
         }
     }, [projectData, tube, shell, uAssume]);
 
+    const temaWarnings = useMemo(() => {
+        if (!projectData || !calculationResults) return [];
+        const w: string[] = [];
+        const ds = calculationResults.shellDiameter;
+        const bs = ds * shell.baffleRatio;
+
+        if (projectData.temaClass === "R") {
+            if (tube.thickness < 0.0021) w.push("TEMA Class R: Min tube thickness should be 2.11mm (14 BWG) for severe service.");
+            if (bs > 0.4 * ds) w.push("TEMA Class R: Baffle spacing should not exceed 0.4 × Shell Diameter to prevent vibration.");
+            if (projectData.hot.foulingResistance < 0.00017 || projectData.cold.foulingResistance < 0.00017) {
+                w.push("TEMA Class R: Standard fouling allowance for refinery service is usually ≥ 0.00017 m²K/W.");
+            }
+        } else if (projectData.temaClass === "B") {
+            if (tube.thickness < 0.0016) w.push("TEMA Class B: Recommended min tube thickness is 1.65mm (16 BWG).");
+        }
+        return w;
+    }, [projectData, tube, shell, calculationResults]);
+
     const handleFinish = () => {
         const existing = JSON.parse(localStorage.getItem("he_current_project") || "{}");
         localStorage.setItem("he_current_project", JSON.stringify({ ...existing, tube, shell, uAssume, results: calculationResults, step: 2 }));
@@ -124,8 +142,8 @@ export default function ThermalDesignPage() {
                                 <div className="border-t border-black/5 pt-10">
                                     <h3 className="text-xs font-bold uppercase tracking-widest text-[rgb(var(--re-muted))] mb-6 opacity-60">Tube Specifications</h3>
                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                        <InputGroup label="Tube OD (m)" value={tube.od} onChange={(v) => setTube({ ...tube, od: v })} />
-                                        <InputGroup label="Tube ID (m)" value={tube.id} onChange={(v) => setTube({ ...tube, id: v })} />
+                                        <InputGroup label="Tube OD (m)" value={tube.od} onChange={(v) => setTube({ ...tube, od: v, id: v - 2 * tube.thickness })} />
+                                        <InputGroup label="Tube Thickness (m)" value={tube.thickness} onChange={(v) => setTube({ ...tube, thickness: v, id: tube.od - 2 * v })} />
                                         <InputGroup label="Tube Length (m)" value={tube.length} onChange={(v) => setTube({ ...tube, length: v })} />
                                         <div className="space-y-2">
                                             <div className="text-[10px] font-black uppercase tracking-widest text-[rgb(var(--re-muted))]">Pitch Type</div>
@@ -139,7 +157,26 @@ export default function ThermalDesignPage() {
                                             </select>
                                         </div>
                                     </div>
+                                    <div className="mt-4 text-[10px] font-bold text-[rgb(var(--re-muted))]">Calculated Tube ID: {(tube.id * 1000).toFixed(2)} mm</div>
                                 </div>
+
+                                {temaWarnings.length > 0 && (
+                                    <div className="border-t border-black/5 pt-10">
+                                        <div className="bg-[rgb(var(--re-orange))]/5 border border-[rgb(var(--re-orange))]/20 rounded-[2rem] p-6">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="w-6 h-6 rounded-lg bg-[rgb(var(--re-orange))] text-white flex items-center justify-center text-[10px] font-black">!</div>
+                                                <h4 className="text-xs font-black text-[rgb(var(--re-orange))] uppercase tracking-widest">TEMA Compliance Warnings</h4>
+                                            </div>
+                                            <ul className="space-y-2">
+                                                {temaWarnings.map((w, i) => (
+                                                    <li key={i} className="text-sm font-semibold text-[rgb(var(--re-orange))] flex items-start gap-2">
+                                                        <span className="opacity-40">•</span> {w}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="border-t border-black/5 pt-10">
                                     <h3 className="text-xs font-bold uppercase tracking-widest text-[rgb(var(--re-muted))] mb-6 opacity-60">Shell & Baffle Design</h3>

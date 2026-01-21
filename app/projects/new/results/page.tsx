@@ -79,6 +79,8 @@ export default function ResultsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
                   <DataRow label="Project Name" value={project.name} />
                   <DataRow label="Location" value={project.location || "-"} />
+                  <DataRow label="TEMA Class" value={`Class ${project.temaClass}`} />
+                  <div />
 
                   <div className="col-span-full h-px bg-black/5 my-4" />
 
@@ -118,11 +120,34 @@ export default function ResultsPage() {
                     <DataRow label="Shell side h.t.c" value={res.shellSide?.hs?.toFixed(1)} unit="W/m²°C" />
                     <DataRow label="Shell pressure drop" value={(res.shellSide?.pressureDrop / 1000)?.toFixed(4)} unit="kPa" color={res.shellSide?.pressureDrop / 1000 > (project.hot.allowableDP * 100) ? "text-[rgb(var(--re-orange))]" : ""} />
                   </div>
+
+                  {res.bellDelaware && (
+                    <>
+                      <div className="col-span-full mt-8 mb-4">
+                        <SectionHeader title="Bell-Delaware Correction Factors" icon="J" color="re-blue" />
+                      </div>
+                      <DataRow label="Baffle Cut Factor (Jc)" value={res.bellDelaware.jc?.toFixed(3)} />
+                      <DataRow label="Leakage Factor (Jl)" value={res.bellDelaware.jl?.toFixed(3)} />
+                      <DataRow label="Bundle Bypass (Jb)" value={res.bellDelaware.jb?.toFixed(3)} />
+                      <DataRow label="Spacing Factor (Js)" value={res.bellDelaware.js?.toFixed(3)} />
+                      <DataRow label="Laminar Gradient (Jr)" value={res.bellDelaware.jr?.toFixed(3)} />
+                      <div />
+
+                      <div className="col-span-full mt-8 mb-4">
+                        <SectionHeader title="Shell Press. Drop Components" icon="ΔP" color="re-blue" />
+                      </div>
+                      <DataRow label="Crossflow ΔP" value={(res.bellDelaware.dpCross / 1000)?.toFixed(4)} unit="kPa" />
+                      <DataRow label="Window ΔP" value={(res.bellDelaware.dpWindow / 1000)?.toFixed(4)} unit="kPa" />
+                      <DataRow label="Leakage Effect" value={(res.bellDelaware.dpLeak / 1000)?.toFixed(4)} unit="kPa" />
+                      <DataRow label="Bypass Effect" value={(res.bellDelaware.dpBypass / 1000)?.toFixed(4)} unit="kPa" />
+                      <DataRow label="End zone Loss" value={(res.bellDelaware.dpEnd / 1000)?.toFixed(4)} unit="kPa" />
+                    </>
+                  )}
                 </div>
 
                 <div className="mt-12 pt-8 border-t border-black/5 flex flex-col md:flex-row justify-between items-center gap-6">
                   <div className="text-[10px] font-bold re-muted max-w-sm uppercase tracking-wider">
-                    This datasheet is generated using the Kern Method.
+                    This datasheet is generated using Kern & Bell-Delaware Methods.
                     Please verify mechanical integrity according to ASME VIII Div 1.
                   </div>
                   <div className="flex gap-4">

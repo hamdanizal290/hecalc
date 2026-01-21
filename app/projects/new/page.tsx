@@ -48,6 +48,7 @@ export default function NewProjectPage() {
   const [location, setLocation] = useState("");
   const [units, setUnits] = useState<UnitSystem>("SI");
   const [mode, setMode] = useState<CalculationMode>("Design");
+  const [temaClass, setTemaClass] = useState<"R" | "B" | "C">("R");
 
   const canContinue = projectName.trim().length > 0;
 
@@ -60,6 +61,7 @@ export default function NewProjectPage() {
       location,
       units,
       mode,
+      temaClass,
       step: 0,
     };
     localStorage.setItem("he_current_project", JSON.stringify(project));
@@ -168,6 +170,33 @@ export default function NewProjectPage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t border-black/5 pt-8">
+                  <div className="text-xs font-bold uppercase tracking-widest text-[rgb(var(--re-muted))]">TEMA Class *</div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      { val: "R", label: "Class R", desc: "Refinery/Severe Service" },
+                      { val: "B", label: "Class B", desc: "Chemical/General Service" },
+                      { val: "C", label: "Class C", desc: "Commercial/HVAC" },
+                    ].map((c) => (
+                      <button
+                        key={c.val}
+                        onClick={() => setTemaClass(c.val as any)}
+                        className={`p-6 rounded-[2rem] border text-left transition-all ${temaClass === c.val
+                          ? "bg-[rgb(var(--re-blue))]/5 border-[rgb(var(--re-blue))]/30 ring-1 ring-[rgb(var(--re-blue))]/30"
+                          : "bg-white/40 border-black/5 hover:border-black/10"
+                          }`}
+                      >
+                        <div className={`text-lg font-black mb-1 ${temaClass === c.val ? "text-[rgb(var(--re-blue))]" : "text-[rgb(var(--re-ink))]"}`}>
+                          {c.label}
+                        </div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-[rgb(var(--re-muted))]">
+                          {c.desc}
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
 

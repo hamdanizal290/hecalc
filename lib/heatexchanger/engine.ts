@@ -128,21 +128,55 @@ export function performCalculation(
     const shellRe = (hot.rho * shellVelocity * de) / hot.mu;
     const shellPr = (hot.cp * hot.mu) / hot.k;
     const shellJh = lookupTable(shellRe, SHELL_JH, "cut", shell.baffleCut);
-    const hs = shellJh * shellRe * Math.pow(shellPr, 0.33) * (hot.k / de);
+    const hsIdeal = shellJh * shellRe * Math.pow(shellPr, 0.33) * (hot.k / de);
+
+    // Bell-Delaware Correction Factors
+    // Fc: fraction of tubes in cross-flow (Simplified calculation)
+    const theta_c = 2 * Math.acos(1 - 2 * (shell.baffleCut / 100));
+    const Fc = 1 - (theta_c - Math.sin(theta_c)) / Math.PI;
+    const Jc = 0.55 + 0.72 * Fc;
+
+    // Jl: leakage (Simplified r_s, r_t)
+    const rs = 0.04; // Assume shell-to-baffle leakage ratio
+    const Jl = 0.44 + 0.56 * Math.exp(-1.33 * rs);
+
+    // Jb: bundle bypass
+    const rb = 0.05; // Assume bypass area ratio
+    const Jb = Math.exp(-1.25 * rb);
+
+    // Js: unequal spacing
+    const Js = 1.0; // Assume equal spacing
+
+    // Jr: laminar gradient
+    const Jr = shellRe > 100 ? 1.0 : Math.pow(10 / shellRe, 0.1);
+
+    const hs = hsIdeal * Jc * Jl * Jb * Js * Jr;
 
     // Overall Uo
     // 1/Uo = (1/ho) + (1/hod) + (do*LN(do/di)/(2*kw)) + (do/di)*(1/hid) + (do/di)*(1/hi)
-    // Assume ho = hs, hi = hi
     const invUo = (1 / hs) + hot.foulingResistance + (tube.od * Math.log(tube.od / tube.id) / (2 * tube.materialConductivity)) + (tube.od / tube.id) * (cold.foulingResistance + (1 / hi));
     const overallUo = 1 / invUo;
     const deviation = ((overallUo - uAssume) / uAssume) * 100;
 
     // Pressure Drop
     const tubeJf = lookupTable(tubeRe, TUBE_JF, "", 0);
-    const tubeSideDP = numTubes * (8 * tubeJf * (tube.length / tube.id) + 2.5) * (cold.rho * Math.pow(tubeVelocity, 2) / 2);
+    const tubeSideDP = (shell.tubePasses / 2) * (8 * tubeJf * (tube.length / tube.id) + 2.5) * (cold.rho * Math.pow(tubeVelocity, 2) / 2);
 
+    // Shell-side Pressure Drop – Bell–Delaware
     const shellJf = lookupTable(shellRe, SHELL_JF, "cut", shell.baffleCut);
-    const shellSideDP = 8 * shellJf * (shellDiameter / de) * (tube.length / baffleSpacing) * (hot.rho * Math.pow(shellVelocity, 2) / 2);
+    const Nc = (tube.length / baffleSpacing); // Approximate rows in crossflow
+    const dpCross = Nc * shellJf * (hot.rho * Math.pow(shellVelocity, 2) / 2);
+
+    const Nw = Math.ceil(tube.length / baffleSpacing) - 1; // Number of windows
+    const Kw = 0.5; // Window loss coefficient
+    const uw = shellVelocity * 1.2; // Simplified window velocity
+    const dpWindow = Nw * Kw * (hot.rho * Math.pow(uw, 2) / 2);
+
+    const dpLeak = dpCross * ((1 - Jl) / Jl);
+    const dpBypass = dpCross * ((1 - Jb) / Jb);
+    const dpEnd = 2 * (hot.rho * Math.pow(shellVelocity, 2) / 2); // Simple end zone correction
+
+    const shellSideDP = dpCross + dpWindow + dpLeak + dpBypass + dpEnd;
 
     return {
         heatLoad,
@@ -172,6 +206,18 @@ export function performCalculation(
             pressureDrop: shellSideDP
         },
         overallUo,
-        deviation
+        deviation,
+        bellDelaware: {
+            jc: Jc,
+            jl: Jl,
+            jb: Jb,
+            js: Js,
+            jr: Jr,
+            dpCross,
+            dpWindow,
+            dpLeak,
+            dpBypass,
+            dpEnd
+        }
     };
 }

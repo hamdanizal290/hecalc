@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 
 type ModalKey = "about" | "changelog" | "roadmap" | "internal" | "support" | null;
@@ -54,6 +55,7 @@ function Modal({
 }
 
 export default function Home() {
+  const router = useRouter();
   const [modal, setModal] = useState<ModalKey>(null);
 
   const modalContent = useMemo(() => {
@@ -312,7 +314,7 @@ export default function Home() {
                 <button
                   type="button"
                   className="px-4 py-2 rounded-2xl text-sm font-semibold text-[rgb(var(--re-blue))] border border-black/10 hover:bg-white/70 transition"
-                  onClick={() => (window.location.href = "/docs")}
+                  onClick={() => router.push("/docs")}
                 >
                   Dokumentasi Teknis
                 </button>

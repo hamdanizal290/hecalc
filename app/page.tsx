@@ -77,12 +77,18 @@ export default function Home() {
           title: "Changelog",
           body: (
             <>
-              Placeholder untuk catatan perubahan versi.
+              Versi pengembangan terbaru HeatExchangerCalc:
               <ul className="mt-2 list-disc pl-5">
-                <li>v0.1 — Homepage + struktur modul</li>
-                <li>v0.2 — New Project (Step 0) + auto standard (available)</li>
-                <li>v0.3 — Wizard input + shell table result (planned)</li>
-                <li>v0.4 — Export/report ringkas (planned)</li>
+                <li>
+                  <strong className="text-[rgb(var(--re-blue))]">v1.2.0 (Latest)</strong> — Implementasi Bell-Delaware correction factors ($J_c, J_l, J_b, J_s, J_r$) & shell-side hydraulic analysis (In Progress).
+                </li>
+                <li>
+                  <strong className="text-[rgb(var(--re-blue))]">v1.1.0</strong> — Integrasi TEMA Class selection (R, B, C) & dukungan Multi-Unit (SI & Imperial).
+                </li>
+                <li>
+                  <strong className="text-[rgb(var(--re-blue))]">v1.0.0</strong> — Initial release core Kern Method calculation engine & multi-step project wizard.
+                </li>
+                <li>v0.1 — Base structure & prototype UI landing page.</li>
               </ul>
             </>
           ),
@@ -92,20 +98,24 @@ export default function Home() {
           title: "Roadmap",
           body: (
             <>
-              Rencana pengembangan modul (bertahap):
+              Rencana pengembangan modul strategis:
               <ul className="mt-2 list-disc pl-5">
                 <li>
-                  <strong className="text-[rgb(var(--re-blue))]">Project workflow</strong> (wizard + design cases)
+                  <strong className="text-[rgb(var(--re-blue))]">Advanced Hydraulics</strong>: Full detail pressure drop (window, leakage, bypass) via Bell-Delaware.
                 </li>
                 <li>
-                  <strong className="text-[rgb(var(--re-blue))]">Shell</strong> (core)
+                  <strong className="text-[rgb(var(--re-blue))]">TEMA Standards</strong>: Otomasi batasan mekanikal (fouling, spacing, thickness) sesuai standar TEMA.
                 </li>
-                <li>Bottom / annular</li>
-                <li>Roof</li>
-                <li>Wind</li>
-                <li>Seismic</li>
-                <li>Nozzle reinforcement</li>
-                <li>Export PDF/Excel + report ringkas</li>
+                <li>
+                  <strong className="text-[rgb(var(--re-green))]">Vibration Analysis</strong>: Pengecekan fluid-induced vibration (crossflow & acoustic resonance).
+                </li>
+                <li>
+                  <strong className="text-[rgb(var(--re-blue))]">New Geometries</strong>: Dukungan konfigurasi U-tube & Floating Head (Type S/T).
+                </li>
+                <li>
+                  <strong className="text-[rgb(var(--re-orange))]">Report Engine</strong>: Export datasheet PDF/Excel yang traceable & professional.
+                </li>
+                <li>Interactive 3D tube layout visualization.</li>
               </ul>
             </>
           ),
@@ -293,9 +303,10 @@ export default function Home() {
                 {[
                   { name: "Project initiation (Step 0)", status: "Available" },
                   { name: "Kern Method Initial Sizing", status: "Available" },
-                  { name: "Bell–Delaware Correction Factors", status: "In Progress" },
-                  { name: "Bell–Delaware Shell-side Press. Drop", status: "In Progress" },
-                  { name: "Select TEMA Class", status: "In Progress" },
+                  { name: "Bell–Delaware Implementation", status: "Available" },
+                  { name: "Select TEMA Class", status: "Available" },
+                  { name: "Vibration Analysis", status: "In Progress" },
+                  { name: "New Geometries", status: "In Progress" },
                   { name: "Results & Report", status: "Available" },
                 ].map((m) => (
                   <div
